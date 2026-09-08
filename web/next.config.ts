@@ -16,6 +16,8 @@ const config: NextConfig = {
   async rewrites() {
     return [
       { source: '/api/auth/:path*', destination: `${API}/auth/:path*` },
+      // Маршруты кабинета: та же работа, что /v1/*, но по сессионной куке.
+      { source: '/api/account/:path*', destination: `${API}/account/:path*` },
       { source: '/api/v1/:path*', destination: `${API}/v1/:path*` },
       { source: '/api/health', destination: `${API}/health` },
     ];

@@ -11,4 +11,4 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts"]
-}x
+}

@@ -11,6 +11,6 @@ export const conf = {
     sessionTtl: Number(process.env.SESSION_TTL ?? 30 * 24 * 3600),
     cookieName: process.env.COOKIE_NAME ?? 'sid',
     isProd: process.env.NODE_ENV === 'production',
-    appUrl: process.env.APPURL ?? 'http://localhost:3001',
+    appUrl: process.env.APP_URL ?? 'http://localhost:3000',
     resetTokenTtl: Number(process.env.RESETTOKENTTL ?? 3600)
 };

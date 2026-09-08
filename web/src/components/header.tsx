@@ -22,8 +22,20 @@ export function Header() {
   useEffect(() => {
     // passive: true — обещаем не звать preventDefault, и браузер может
     // не ждать наш обработчик перед прокруткой. На телефоне это заметно.
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
+    //
+    // Значение держим в ref и трогаем состояние только при смене: иначе
+    // setState вызывается на каждое событие прокрутки, а их сотни в секунду.
+    let last = window.scrollY > 8;
+    setScrolled(last);
+
+    const onScroll = () => {
+      const next = window.scrollY > 8;
+      if (next !== last) {
+        last = next;
+        setScrolled(next);
+      }
+    };
+
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -34,9 +46,11 @@ export function Header() {
     <header
       className={cn(
         'sticky top-0 z-40 w-full',
-        'transition-[background-color,border-color,backdrop-filter] duration-300',
+        // backdrop-filter из перехода убран намеренно: его анимация
+        // заставляет браузер перерисовывать всё, что под шапкой, каждый кадр.
+        'transition-[background-color,border-color] duration-300',
         scrolled
-          ? 'border-b border-border bg-bg/80 backdrop-blur-xl'
+          ? 'border-b border-border bg-bg/85 backdrop-blur-md'
           : 'border-b border-transparent',
       )}
     >

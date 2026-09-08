@@ -26,6 +26,39 @@ export const cn = (...v: Array<string | false | undefined | null>) =>
  * После первого показа наблюдение снимается — держать наблюдателя на сотне
  * элементов всю сессию незачем.
  */
+/**
+ * Один наблюдатель на все Reveal, а не по одному на элемент.
+ *
+ * На лендинге таких блоков полтора десятка. Пятнадцать отдельных
+ * IntersectionObserver — это пятнадцать независимых очередей колбэков,
+ * которые браузер обслуживает по отдельности. Один общий делает ту же
+ * работу за один проход и отписывает элемент сразу после показа.
+ */
+let sharedIO: IntersectionObserver | null = null;
+const pending = new Map<Element, () => void>();
+
+function observeOnce(el: Element, onVisible: () => void) {
+  if (!sharedIO) {
+    sharedIO = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          pending.get(e.target)?.();
+          pending.delete(e.target);
+          sharedIO!.unobserve(e.target);
+        }
+      },
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.05 },
+    );
+  }
+  pending.set(el, onVisible);
+  sharedIO.observe(el);
+  return () => {
+    pending.delete(el);
+    sharedIO?.unobserve(el);
+  };
+}
+
 export function Reveal({
   children,
   delay = 0,
@@ -47,18 +80,7 @@ export function Reveal({
       return;
     }
 
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: '0px 0px -12% 0px', threshold: 0.05 },
-    );
-
-    io.observe(el);
-    return () => io.disconnect();
+    return observeOnce(el, () => setVisible(true));
   }, []);
 
   return (

@@ -19,42 +19,64 @@ const SNIPPET = `curl -X POST https://api.pdfapi.dev/v1/convert \\
  *  3. Анимация не стартует, пока блок не виден, и полностью отключается
  *     при prefers-reduced-motion — тогда сразу показывается финальный кадр.
  */
+const CHARS_PER_SEC = 58;
+
 export function HeroDemo() {
   const ref = useRef<HTMLDivElement>(null);
-  const [typed, setTyped] = useState('');
+  const codeRef = useRef<HTMLElement>(null);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    const code = codeRef.current;
+    if (!el || !code) return;
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) {
-      setTyped(SNIPPET);
+      code.textContent = SNIPPET;
       setDone(true);
       return;
     }
 
-    let timer: ReturnType<typeof setTimeout>;
-    let i = 0;
+    let raf = 0;
+    let startedAt = 0;
+    let stopped = false;
 
-    const type = () => {
-      i += 1;
-      setTyped(SNIPPET.slice(0, i));
-      if (i < SNIPPET.length) {
-        // Неровный интервал: ровный ритм читается как машинопись из кино,
-        // а лёгкий разброс — как живой набор.
-        timer = setTimeout(type, 14 + Math.random() * 22);
-      } else {
-        timer = setTimeout(() => setDone(true), 400);
+    /**
+     * Набор через requestAnimationFrame и прямую запись в DOM.
+     *
+     * Раньше здесь был setTimeout с setState на каждый символ: полторы сотни
+     * перерисовок React подряд, каждая со своим согласованием дерева. Плюс
+     * интервал 14–36 мс не попадал в кадр — символы появлялись то по два,
+     * то ни одного. Отсюда и рваность.
+     *
+     * Теперь кадр задаёт браузер, а количество символов считается от
+     * прошедшего времени. Если кадр пропущен, следующий догонит — темп
+     * остаётся ровным на любом устройстве. React перерисовывается один раз,
+     * в самом конце.
+     */
+    const tick = (t: number) => {
+      if (stopped) return;
+      if (!startedAt) startedAt = t;
+
+      const n = Math.min(
+        SNIPPET.length,
+        Math.floor(((t - startedAt) / 1000) * CHARS_PER_SEC),
+      );
+
+      if (code.textContent!.length !== n) {
+        code.textContent = SNIPPET.slice(0, n);
       }
+
+      if (n < SNIPPET.length) raf = requestAnimationFrame(tick);
+      else setDone(true);
     };
 
     const io = new IntersectionObserver(
       ([e]) => {
         if (e.isIntersecting) {
           io.disconnect();
-          timer = setTimeout(type, 350);
+          raf = requestAnimationFrame(tick);
         }
       },
       { threshold: 0.25 },
@@ -62,8 +84,9 @@ export function HeroDemo() {
 
     io.observe(el);
     return () => {
+      stopped = true;
       io.disconnect();
-      clearTimeout(timer);
+      cancelAnimationFrame(raf);
     };
   }, []);
 
@@ -78,11 +101,8 @@ export function HeroDemo() {
           <span className="ml-2 font-mono text-[12px] text-subtle">bash</span>
         </div>
         <pre className="min-h-[150px] overflow-x-auto p-4 text-[12.5px] leading-[1.75] sm:min-h-[168px]">
-          <code
-            className={cn('font-mono text-fg', !done && 'caret')}
-          >
-            {typed}
-          </code>
+          {/* Содержимое пишется напрямую через ref — React сюда не заглядывает. */}
+          <code ref={codeRef} className={cn('font-mono text-fg', !done && 'caret')} />
         </pre>
       </div>
 

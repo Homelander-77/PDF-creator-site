@@ -289,17 +289,25 @@ body {
   height: 46vh;
   pointer-events: none;
   z-index: -1;
-  filter: blur(110px);
   opacity: 0.16;
   /* Гасим к краям, чтобы свечение не упиралось в границы экрана полосой. */
   mask-image: radial-gradient(ellipse 60% 100% at 50% 40%, #000 20%, transparent 78%);
+  /* Отдельный слой композитора: изменения внутри не трогают остальную страницу. */
+  contain: paint;
 }
+
+/* Размытие висит на самих пятнах, а не на контейнере.
+   Раньше filter стоял на .aurora, а двигались дочерние элементы — браузер
+   был вынужден пересчитывать размытие всего блока на каждом кадре. Теперь
+   каждое пятно размывается один раз и дальше просто едет трансформом. */
 .aurora::before,
 .aurora::after {
   content: '';
   position: absolute;
   border-radius: 50%;
+  filter: blur(110px);
   will-change: transform;
+  transform: translateZ(0);
 }
 .aurora::before {
   width: 30vw;

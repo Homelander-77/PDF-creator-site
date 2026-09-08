@@ -163,13 +163,22 @@ export const api = {
   verify: (token: string) =>
     request<{ status: string }>(`/auth/verify?token=${encodeURIComponent(token)}`),
 
-  me: () => request<Me>('/v1/me'),
+  /* ---- Кабинет: по сессионной куке, НЕ по API-ключу ------------------- *
+   *
+   * Раньше эти методы били в /v1/*, но там стоит хук authenticate, который
+   * ждёт заголовок с ключом. Браузер шлёт куку — получался стабильный 401.
+   *
+   * /account/* делает ровно то же самое, но пускает по сессии. Две системы
+   * аутентификации остаются раздельными: ключи для машин, куки для браузера.
+   */
 
-  keys: () => request<{ keys: ApiKey[] }>('/v1/keys'),
+  me: () => request<Me>('/account/me'),
+
+  keys: () => request<{ keys: ApiKey[] }>('/account/keys'),
 
   createKey: (name: string) =>
-    request<NewApiKey>('/v1/keys', { method: 'POST', body: body({ name }) }),
+    request<NewApiKey>('/account/keys', { method: 'POST', body: body({ name }) }),
 
   revokeKey: (id: string) =>
-    request<void>(`/v1/keys/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    request<void>(`/account/keys/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };
