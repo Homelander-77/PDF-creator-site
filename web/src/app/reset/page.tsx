@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState, type FormEvent } from 'react';
 import { AuthShell } from '@/components/auth-shell';
+import { PasswordRules } from '@/components/password-rules';
 import { Button, Input } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
+import { isValidPassword } from '@/lib/password';
 
 function ResetForm() {
   const router = useRouter();
@@ -84,8 +86,9 @@ function ResetForm() {
           minLength={10}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Минимум 10 символов"
+          placeholder="Например: Гора#Море42"
         />
+        <PasswordRules value={password} />
 
         <Input
           label="Повторите"
@@ -110,7 +113,7 @@ function ResetForm() {
           type="submit"
           size="lg"
           loading={loading}
-          disabled={password.length < 10 || mismatch}
+          disabled={!isValidPassword(password) || mismatch}
           className="w-full"
         >
           Сменить пароль

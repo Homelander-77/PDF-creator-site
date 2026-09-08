@@ -48,7 +48,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         }
         const token = await issueToken(userId, 'verify', conf.verifyTokenTtl);
         await mailer.send(
-            verificationEmail(email, `${conf.appUrl}/auth/verify?token=${token}`),
+            verificationEmail(email, `${conf.appUrl}/verify?token=${token}`),
         );
         return reply.code(202).send({
             status: 'pending_verification',
@@ -90,7 +90,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
             return reply.code(202).send(generic);
         }
         const token = await issueToken(rows[0].id, 'verify', conf.verifyTokenTtl);
-        await mailer.send(verificationEmail(email, `${conf.appUrl}/auth/verify?token=${token}`));
+        await mailer.send(verificationEmail(email, `${conf.appUrl}/verify?token=${token}`));
         return reply.code(202).send(generic);
     });
 
@@ -118,7 +118,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
             return;
         }
         const token = await issueToken(rows[0].id, 'reset', conf.resetTokenTtl);
-        await mailer.send(resetEmail(email, `${conf.appUrl}/auth/reset?token=${token}`));
+        await mailer.send(resetEmail(email, `${conf.appUrl}/reset?token=${token}`));
     });
 
     app.post('/auth/reset', async (req, reply) => {

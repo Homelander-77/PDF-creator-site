@@ -18,11 +18,22 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Коды, по которым сервер знает больше нас.
+ *
+ * Для них его текст точнее любой общей формулировки: сервер проверяет
+ * несколько правил и говорит, какое именно нарушено. Подменять это
+ * фразой из словаря — значит скрыть от человека настоящую причину.
+ * Ровно на этом сюда попадала «пароль слишком короткий» при нормальной
+ * длине, но без спецсимвола.
+ */
+const PREFER_SERVER_MESSAGE = new Set(['weak_password', 'invalid_request']);
+
 /** Человеческие формулировки вместо кодов. Ошибка — тоже часть интерфейса. */
 const MESSAGES: Record<string, string> = {
   invalid_credentials: 'Неверный адрес или пароль.',
   invalid_email: 'Проверьте адрес почты.',
-  weak_password: 'Пароль слишком короткий — нужно хотя бы 10 символов.',
+  weak_password: 'Пароль не отвечает требованиям.',
   email_not_verified: 'Подтвердите адрес почты, ссылка была в письме.',
   not_authenticated: 'Нужно войти заново.',
   too_many_attempts: 'Слишком много попыток. Подождите минуту.',
@@ -59,13 +70,13 @@ async function request<T>(
   if (!res.ok) {
     const code = String((data as { error?: string }).error ?? 'unknown');
     const retry = (data as { retry_after_sec?: number }).retry_after_sec;
-    throw new ApiError(
-      res.status,
-      code,
-      MESSAGES[code] ??
-        String((data as { message?: string }).message ?? 'Что-то пошло не так.'),
-      retry,
-    );
+    const fromServer = (data as { message?: string }).message;
+
+    const message = PREFER_SERVER_MESSAGE.has(code)
+      ? (fromServer ?? MESSAGES[code] ?? 'Что-то пошло не так.')
+      : (MESSAGES[code] ?? fromServer ?? 'Что-то пошло не так.');
+
+    throw new ApiError(res.status, code, String(message), retry);
   }
 
   return data as T;

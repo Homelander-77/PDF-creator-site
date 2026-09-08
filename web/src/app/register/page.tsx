@@ -3,19 +3,10 @@
 import Link from 'next/link';
 import { useMemo, useState, type FormEvent } from 'react';
 import { AuthShell } from '@/components/auth-shell';
-import { Button, Input, cn } from '@/components/ui';
+import { PasswordRules } from '@/components/password-rules';
+import { Button, Input } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
-
-/** Грубая оценка стойкости — только чтобы дать обратную связь во время ввода. */
-function strength(pw: string): { score: 0 | 1 | 2 | 3; label: string } {
-  if (pw.length < 10) return { score: 0, label: 'Слишком короткий' };
-  let s = 1;
-  if (pw.length >= 16) s++;
-  if (/\s/.test(pw) && pw.trim().split(/\s+/).length >= 3) s++;
-  else if (/[^a-zA-Zа-яА-Я0-9]/.test(pw) && /\d/.test(pw)) s++;
-  const score = Math.min(s, 3) as 1 | 2 | 3;
-  return { score, label: ['', 'Приемлемо', 'Хорошо', 'Отлично'][score] };
-}
+import { isValidPassword } from '@/lib/password';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -24,7 +15,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const st = useMemo(() => strength(password), [password]);
+  const valid = useMemo(() => isValidPassword(password), [password]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -105,28 +96,9 @@ export default function RegisterPage() {
             minLength={10}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Минимум 10 символов"
-            hint="Длинная фраза надёжнее короткой мешанины символов."
+            placeholder="Например: Гора#Море42"
           />
-
-          {password.length > 0 && (
-            <div className="mt-2.5 flex items-center gap-2">
-              <div className="flex flex-1 gap-1">
-                {[1, 2, 3].map((i) => (
-                  <span
-                    key={i}
-                    className={cn(
-                      'h-1 flex-1 rounded-full transition-colors duration-300',
-                      st.score >= i ? 'bg-accent' : 'bg-border',
-                    )}
-                  />
-                ))}
-              </div>
-              <span className="w-[76px] text-right text-[12px] text-subtle">
-                {st.label}
-              </span>
-            </div>
-          )}
+          <PasswordRules value={password} />
         </div>
 
         {error && (
@@ -142,7 +114,7 @@ export default function RegisterPage() {
           type="submit"
           size="lg"
           loading={loading}
-          disabled={st.score === 0}
+          disabled={!valid}
           className="w-full"
         >
           Создать аккаунт
