@@ -45,7 +45,7 @@ function ResetForm() {
         title="Ссылка неполная"
         subtitle="В адресе нет токена. Скорее всего, ссылку скопировали не целиком."
         footer={
-          <Link href="/forgot" className="text-accent hover:underline">
+          <Link href="/forgot" className="text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent">
             Запросить новую ссылку
           </Link>
         }

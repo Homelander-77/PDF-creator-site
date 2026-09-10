@@ -135,7 +135,7 @@ export default function LandingPage() {
           <div className="grid-bg pointer-events-none absolute inset-0 -z-10 opacity-60" aria-hidden />
 
           <div className="mx-auto max-w-6xl px-5 pb-20 pt-16 sm:pt-24">
-            <div className="animate-fade-up mx-auto max-w-3xl text-center">
+            <div className="stagger mx-auto max-w-3xl text-center">
               <Badge tone="accent">Gotenberg под капотом · без вашего Chromium</Badge>
 
               <h1 className="mt-5 text-balance text-[40px] font-semibold leading-[1.08] tracking-[-0.03em] sm:text-[60px]">

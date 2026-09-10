@@ -13,12 +13,33 @@ export default function DashboardPage() {
   const [name, setName] = useState('');
   const [toast, setToast] = useState<{ msg: string; tone: 'success' | 'error' } | null>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // Подтверждение отзыва: id ключа, для которого показан вопрос.
+  const [confirming, setConfirming] = useState<string | null>(null);
 
+  /**
+   * Загрузка данных кабинета.
+   *
+   * Раньше при неудаче me оставался null — и человек видел вечный скелет
+   * без единого намёка, что что-то сломалось. Теперь неудача переходит
+   * в явное состояние с кнопкой «Повторить».
+   */
   const load = useCallback(async () => {
+    setLoadError(null);
     const [m, k] = await Promise.allSettled([api.me(), api.keys()]);
+
     if (m.status === 'fulfilled') setMe(m.value);
     if (k.status === 'fulfilled') setKeys(k.value.keys);
-    else setKeys([]);
+
+    if (m.status === 'rejected' && k.status === 'rejected') {
+      const e = m.reason;
+      setLoadError(
+        e instanceof ApiError ? e.message : 'Не удалось загрузить данные.',
+      );
+      setKeys([]);
+    } else if (k.status === 'rejected') {
+      setKeys([]);
+    }
   }, []);
 
   useEffect(() => {
@@ -47,16 +68,22 @@ export default function DashboardPage() {
     }
   }
 
-  async function revoke(id: string, prefix: string) {
-    // Отзыв необратим, поэтому спрашиваем. Но не через confirm(): он
-    // блокирует поток и выглядит чужеродно.
-    if (!window.confirm(`Отозвать ключ ${prefix}…? Это нельзя отменить.`)) return;
+  /**
+   * Отзыв необратим, поэтому спрашиваем — но подтверждением прямо в строке,
+   * а не через window.confirm. Системное окно блокирует поток браузера,
+   * не поддаётся оформлению и на телефоне выглядит чужеродно.
+   */
+  async function revoke(id: string) {
+    setConfirming(null);
     try {
       await api.revokeKey(id);
       setKeys((k) => (k ?? []).filter((x) => x.id !== id));
       setToast({ msg: 'Ключ отозван — он перестал работать.', tone: 'success' });
-    } catch {
-      setToast({ msg: 'Не удалось отозвать ключ.', tone: 'error' });
+    } catch (err) {
+      setToast({
+        msg: err instanceof ApiError ? err.message : 'Не удалось отозвать ключ.',
+        tone: 'error',
+      });
     }
   }
 
@@ -65,7 +92,7 @@ export default function DashboardPage() {
   const pct = Math.min(100, Math.round((used / limit) * 100));
 
   return (
-    <div className="mx-auto max-w-5xl px-5 py-10">
+    <div className="page-enter mx-auto max-w-5xl px-5 py-10">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-semibold tracking-[-0.02em]">Ключи</h1>
@@ -76,6 +103,22 @@ export default function DashboardPage() {
         </div>
         {me && <Badge tone={me.plan === 'free' ? 'neutral' : 'accent'}>{me.plan}</Badge>}
       </div>
+
+      {loadError && (
+        <Card className="animate-fade-in mb-6 border-danger/30 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="font-medium text-danger">{loadError}</div>
+              <p className="mt-1 text-[14px] text-muted">
+                Проверьте, запущен ли сервер API на 3001.
+              </p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => void load()}>
+              Повторить
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* ------------------------------ Квота ---------------------------- */}
       <Card className="mb-6 p-6">
@@ -209,13 +252,29 @@ export default function DashboardPage() {
                   <div className="text-subtle">создан {fmt(k.created_at)}</div>
                 </div>
 
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => revoke(k.id, k.key_prefix)}
-                >
-                  Отозвать
-                </Button>
+                {confirming === k.id ? (
+                  <div className="animate-fade-in flex items-center gap-2">
+                    <span className="text-[13px] text-muted">Точно?</span>
+                    <Button variant="danger" size="sm" onClick={() => revoke(k.id)}>
+                      Отозвать
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setConfirming(null)}
+                    >
+                      Отмена
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => setConfirming(k.id)}
+                  >
+                    Отозвать
+                  </Button>
+                )}
               </li>
             ))}
           </ul>

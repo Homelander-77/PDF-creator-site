@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -159,8 +160,17 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
 };
 
 export function Input({ label, hint, error, className, id, ...rest }: InputProps) {
-  const autoId = useRef(`in-${Math.random().toString(36).slice(2, 9)}`);
-  const inputId = id ?? autoId.current;
+  /**
+   * useId, а не Math.random.
+   *
+   * Здесь стоял случайный идентификатор. На сервере страница собиралась
+   * с одним значением, в браузере генерировалось другое — и React ругался
+   * на расхождение гидрации, потому что id у input и for у label не совпадали
+   * с разметкой из HTML. useId придуман ровно для этого: он даёт одинаковый
+   * идентификатор на обеих сторонах.
+   */
+  const reactId = useId();
+  const inputId = id ?? reactId;
 
   return (
     <div className="w-full">
@@ -262,10 +272,21 @@ export function Toast({
   tone?: 'success' | 'error';
   onDone: () => void;
 }) {
+  /**
+   * onDone держим в ref, а не в зависимостях эффекта.
+   *
+   * Родитель передаёт стрелочную функцию — новую на каждом рендере. С ней
+   * в списке зависимостей эффект перезапускался при любом обновлении
+   * родителя, и отсчёт трёх секунд начинался заново. Уведомление могло
+   * висеть неограниченно долго, если на странице что-то менялось.
+   */
+  const done = useRef(onDone);
+  done.current = onDone;
+
   useEffect(() => {
-    const t = setTimeout(onDone, 3600);
+    const t = setTimeout(() => done.current(), 3600);
     return () => clearTimeout(t);
-  }, [onDone]);
+  }, [message]);
 
   return (
     <div

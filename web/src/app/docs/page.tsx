@@ -28,10 +28,10 @@ export default function DocsPage() {
       <div className="mx-auto flex max-w-6xl gap-12 px-5 py-12">
         <DocsNav sections={SECTIONS} />
 
-        <main className="min-w-0 flex-1 pb-16">
+        <main className="page-enter min-w-0 flex-1 pb-16">
           <div className="mb-12">
             <Badge tone="accent">v1</Badge>
-            <h1 className="mt-4 text-[38px] font-semibold leading-tight tracking-[-0.03em]">
+            <h1 className="mt-4 text-[30px] font-semibold leading-tight tracking-[-0.03em] sm:text-[38px]">
               Документация
             </h1>
             <p className="mt-3 max-w-[62ch] text-[17px] leading-relaxed text-muted">

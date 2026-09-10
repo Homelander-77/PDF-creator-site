@@ -35,7 +35,7 @@ export default function ForgotPage() {
           : 'Укажите почту — пришлём ссылку для смены пароля.'
       }
       footer={
-        <Link href="/login" className="text-accent hover:underline">
+        <Link href="/login" className="text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent">
           Вернуться ко входу
         </Link>
       }

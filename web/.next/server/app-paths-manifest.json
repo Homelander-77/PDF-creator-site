@@ -1,7 +1,11 @@
 {
-  "/page": "app/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/login/page": "app/login/page.js",
-  "/register/page": "app/register/page.js",
+  "/page": "app/page.js",
   "/verify/page": "app/verify/page.js",
+  "/register/page": "app/register/page.js",
+  "/reset/page": "app/reset/page.js",
+  "/forgot/page": "app/forgot/page.js",
+  "/docs/page": "app/docs/page.js",
   "/dashboard/page": "app/dashboard/page.js"
 }

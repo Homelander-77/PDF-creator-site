@@ -51,7 +51,7 @@ export default function LoginPage() {
       footer={
         <>
           Нет аккаунта?{' '}
-          <Link href="/register" className="text-accent hover:underline">
+          <Link href="/register" className="text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent">
             Зарегистрироваться
           </Link>
         </>

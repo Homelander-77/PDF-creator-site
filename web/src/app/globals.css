@@ -20,18 +20,22 @@
   --border: #e6e6ec;
   --border-strong: #d3d3dd;
   --fg: #14141a;
-  --fg-muted: #63636f;
-  --fg-subtle: #8f8f9d;
+  --fg-muted: #5a5a66;
+  --fg-subtle: #6a6a78;
 
   --accent: #5b52e8;
   --accent-hover: #4a41d6;
   --accent-fg: #ffffff;
   --accent-soft: rgba(91, 82, 232, 0.09);
-  --accent-2: #00a5b5;
+  /* Тёмный бирюзовый, а не яркий: #00a5b5 давал контраст 2.7 на светлом
+     фоне — текст такого цвета не читается и не проходит WCAG AA.
+     Здесь и ниже цвета подобраны так, чтобы каждый работал как ТЕКСТ
+     на самом светлом из фонов, где он встречается. */
+  --accent-2: #00757f;
 
-  --success: #0a8a54;
-  --warning: #b06a00;
-  --danger: #d4183d;
+  --success: #077145;
+  --warning: #8f5300;
+  --danger: #c4153a;
 
   --shadow-sm: 0 1px 2px rgba(20, 20, 26, 0.05);
   --shadow-md: 0 4px 16px -4px rgba(20, 20, 26, 0.1);
@@ -51,8 +55,8 @@
     --border: #23232c;
     --border-strong: #33333f;
     --fg: #ededf2;
-    --fg-muted: #9b9bab;
-    --fg-subtle: #6d6d7c;
+    --fg-muted: #a2a2b2;
+    --fg-subtle: #90909f;
 
     --accent: #7d74ff;
     --accent-hover: #9089ff;
@@ -79,8 +83,8 @@
   --border: #23232c;
   --border-strong: #33333f;
   --fg: #ededf2;
-  --fg-muted: #9b9bab;
-  --fg-subtle: #6d6d7c;
+  --fg-muted: #a2a2b2;
+  --fg-subtle: #90909f;
 
   --accent: #7d74ff;
   --accent-hover: #9089ff;
@@ -139,6 +143,10 @@ html {
 
 body {
   background: var(--bg);
+  /* Длинное слово без пробелов (заголовок, почта, название ключа) иначе
+     распирает контейнер и вызывает горизонтальную прокрутку всей страницы.
+     break-word рвёт только когда иначе никак — обычный текст не трогает. */
+  overflow-wrap: break-word;
   color: var(--fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -263,6 +271,24 @@ body {
 .animate-fade-in {
   animation: fade-in 0.5s var(--ease) both;
 }
+
+/* Ступенчатый вход: элементы появляются по очереди, а не все разом.
+   Разница в 70 мс между соседями читается как «страница собирается»,
+   а не «моргнула». Задержка — свойство анимации, не таймер в JS. */
+.stagger > * {
+  animation: fade-up 0.6s var(--ease) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.09s; }
+.stagger > *:nth-child(3) { animation-delay: 0.16s; }
+.stagger > *:nth-child(4) { animation-delay: 0.23s; }
+.stagger > *:nth-child(5) { animation-delay: 0.30s; }
+
+/* Вход страницы. Только opacity — самая дешёвая анимация из существующих:
+   композитор меняет прозрачность готового слоя, ничего не перерисовывая. */
+.page-enter {
+  animation: fade-in 0.35s var(--ease) both;
+}
 .animate-float {
   animation: float-slow 9s ease-in-out infinite;
 }
@@ -283,47 +309,75 @@ body {
 
 /* Мягкое свечение под геро-блоком. Два размытых пятна вместо canvas:
    стоит ноль процессора, анимируется трансформом. */
+/* СВЕЧЕНИЕ БЕЗ filter: blur()
+ *
+ * Здесь стояло blur(110px) на пятнах шириной ~380 px. Радиус размытия почти
+ * втрое больше самого элемента, ядро свёртки огромное, и при прокрутке слой
+ * растрируется заново каждый кадр. Замер показал: одна эта аурора давала
+ * p95 = 40 мс и 10 рваных кадров из 136. Всё остальное на странице —
+ * backdrop-filter, сетка, плавная прокрутка — не давало ничего.
+ *
+ * Радиальный градиент мягкий сам по себе: тот же вид, но браузер рисует его
+ * один раз и дальше только двигает готовый слой. Фильтр не нужен вовсе.
+ */
 .aurora {
   position: absolute;
   inset: 4rem 0 auto 0;
   height: 46vh;
   pointer-events: none;
   z-index: -1;
-  opacity: 0.16;
+  opacity: 0.18;
+  overflow: hidden;
   /* Гасим к краям, чтобы свечение не упиралось в границы экрана полосой. */
   mask-image: radial-gradient(ellipse 60% 100% at 50% 40%, #000 20%, transparent 78%);
-  /* Отдельный слой композитора: изменения внутри не трогают остальную страницу. */
-  contain: paint;
+  contain: strict;
 }
 
-/* Размытие висит на самих пятнах, а не на контейнере.
-   Раньше filter стоял на .aurora, а двигались дочерние элементы — браузер
-   был вынужден пересчитывать размытие всего блока на каждом кадре. Теперь
-   каждое пятно размывается один раз и дальше просто едет трансформом. */
 .aurora::before,
 .aurora::after {
   content: '';
   position: absolute;
-  border-radius: 50%;
-  filter: blur(110px);
+  inset: -20%;
   will-change: transform;
   transform: translateZ(0);
 }
+
 .aurora::before {
-  width: 30vw;
-  height: 30vw;
-  left: 18%;
-  top: 10%;
-  background: var(--accent);
-  animation: float-slow 16s ease-in-out infinite;
+  background: radial-gradient(
+    40% 46% at 34% 42%,
+    var(--accent) 0%,
+    transparent 68%
+  );
+  animation: drift-a 26s ease-in-out infinite;
 }
+
 .aurora::after {
-  width: 26vw;
-  height: 26vw;
-  right: 20%;
-  top: 4%;
-  background: var(--accent-2);
-  animation: float-slow 21s ease-in-out infinite reverse;
+  background: radial-gradient(
+    34% 40% at 68% 26%,
+    var(--accent-2) 0%,
+    transparent 68%
+  );
+  animation: drift-b 34s ease-in-out infinite;
+}
+
+/* Сдвиг маленький и очень медленный: свечение должно жить, а не плавать. */
+@keyframes drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(3%, -4%, 0);
+  }
+}
+@keyframes drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-4%, 3%, 0);
+  }
 }
 
 /* В тёмной теме свечение читается хуже — даём ему чуть больше силы.

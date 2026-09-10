@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [resent, setResent] = useState<'idle' | 'sending' | 'done'>('idle');
 
   const valid = useMemo(() => isValidPassword(password), [password]);
 
@@ -38,13 +39,26 @@ export default function RegisterPage() {
         subtitle={`Мы отправили ссылку подтверждения на ${email}. Перейдите по ней, чтобы завершить регистрацию.`}
         footer={
           <>
-            Письмо не пришло?{' '}
-            <button
-              onClick={() => api.resend(email).catch(() => {})}
-              className="text-accent hover:underline"
-            >
-              Отправить ещё раз
-            </button>
+            {resent === 'done' ? (
+              <span className="text-success">Письмо отправлено повторно.</span>
+            ) : (
+              <>
+                Письмо не пришло?{' '}
+                <button
+                  disabled={resent === 'sending'}
+                  onClick={async () => {
+                    // Раньше здесь был вызов без всякой обратной связи:
+                    // человек жал кнопку, и ровно ничего не происходило.
+                    setResent('sending');
+                    await api.resend(email).catch(() => {});
+                    setResent('done');
+                  }}
+                  className="text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent disabled:opacity-50"
+                >
+                  {resent === 'sending' ? 'Отправляем…' : 'Отправить ещё раз'}
+                </button>
+              </>
+            )}
           </>
         }
       >
@@ -70,7 +84,7 @@ export default function RegisterPage() {
       footer={
         <>
           Уже есть аккаунт?{' '}
-          <Link href="/login" className="text-accent hover:underline">
+          <Link href="/login" className="text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent">
             Войти
           </Link>
         </>

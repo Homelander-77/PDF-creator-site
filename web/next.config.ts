@@ -1,9 +1,20 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
 
 const API = process.env.API_ORIGIN ?? 'http://localhost:3001';
 
 const config: NextConfig = {
   reactStrictMode: true,
+
+  /**
+   * Корень проекта — эта папка, и только она.
+   *
+   * Без этой строки Next ищет package-lock.json вверх по дереву и, найдя
+   * несколько, выбирает самый верхний. Один случайный lockfile в домашней
+   * директории — и корнем становится ~/, со всеми вытекающими: лишние файлы
+   * в трассировке сборки и попытки проверить типы у чужого кода.
+   */
+  outputFileTracingRoot: path.resolve(process.cwd()),
 
   /**
    * Прокси на Fastify.

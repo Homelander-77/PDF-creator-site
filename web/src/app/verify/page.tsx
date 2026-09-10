@@ -67,7 +67,7 @@ function Verify() {
       title="Ссылка не сработала"
       subtitle="Она устарела, уже использована или скопирована не полностью. Ссылки живут сутки."
       footer={
-        <Link href="/login" className="text-accent hover:underline">
+        <Link href="/login" className="text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent">
           Перейти ко входу
         </Link>
       }
