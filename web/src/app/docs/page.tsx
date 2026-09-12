@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui';
 export const metadata: Metadata = {
   title: 'Документация',
   description: 'Справочник API pdfapi: аутентификация, конвертация, лимиты, ошибки.',
+  alternates: { canonical: '/docs' },
 };
 
 const SECTIONS = [

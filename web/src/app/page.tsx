@@ -1,6 +1,16 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+
+/**
+ * Каждая индексируемая страница называет свой настоящий адрес сама.
+ * Иначе поисковик, встретив главную по адресу с ?utm_source=... или со
+ * слэшем на конце, посчитает это разными страницами и размажет по ним вес.
+ */
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 import { HeroDemo } from '@/components/hero-demo';
 import { CodeBlock } from '@/components/code-block';
 import { Badge, Button, Card, Reveal } from '@/components/ui';
