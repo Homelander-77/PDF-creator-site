@@ -5,7 +5,7 @@ const GROUPS = [
     title: 'Продукт',
     links: [
       { href: '/#features', label: 'Возможности' },
-      { href: '/#pricing', label: 'Тарифы' },
+      { href: '/pricing', label: 'Тарифы' },
       { href: '/docs', label: 'Документация' },
     ],
   },
@@ -13,7 +13,7 @@ const GROUPS = [
     title: 'Разработчикам',
     links: [
       { href: '/docs#quickstart', label: 'Быстрый старт' },
-      { href: '/docs#api', label: 'Справочник API' },
+      { href: '/docs#convert', label: 'Справочник API' },
       { href: '/docs#errors', label: 'Коды ошибок' },
     ],
   },

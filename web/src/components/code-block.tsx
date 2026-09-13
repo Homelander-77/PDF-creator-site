@@ -14,7 +14,9 @@ import { cn } from './ui';
 const KEYWORDS =
   'const|let|var|function|async|await|import|from|export|return|new|class|' +
   'if|else|for|while|try|catch|def|print|require|curl|func|package|with|' +
-  'open|throw|true|false|null|None';
+  'open|throw|true|false|null|None|' +
+  // Ruby и C# в примерах на языках
+  'using|end|do|raise|nil|unless|puts|public|static|void';
 
 /**
  * ОДИН проход, а не цепочка replace.
@@ -32,11 +34,20 @@ const KEYWORDS =
 const TOKENS = new RegExp(
   [
     `("(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*'|\`(?:\\\\.|[^\`\\\\])*\`)`,
-    `((?:#|//)[^\\n]*)`,
+    /**
+     * Комментарий начинается с начала строки или после пробела.
+     *
+     * Раньше здесь было просто «# или //», и в примерах с curl половина
+     * адреса — //api.pdfapi.dev/v1/convert — раскрашивалась как
+     * комментарий, потому что двойной слэш стоит и в http://. Теперь
+     * символ перед комментарием захватывается отдельно и возвращается
+     * в текст как есть.
+     */
+    `(^|\\s)((?:#|//)[^\\n]*)`,
     `\\b(${KEYWORDS})\\b`,
     `\\b(\\d+(?:\\.\\d+)?)\\b`,
   ].join('|'),
-  'g',
+  'gm',
 );
 
 function highlight(code: string): string {
@@ -47,9 +58,16 @@ function highlight(code: string): string {
 
   return escaped.replace(
     TOKENS,
-    (match, str?: string, com?: string, kw?: string, num?: string) => {
+    (
+      match,
+      str?: string,
+      comPre?: string,
+      com?: string,
+      kw?: string,
+      num?: string,
+    ) => {
       if (str) return `<span class="tok-str">${str}</span>`;
-      if (com) return `<span class="tok-com">${com}</span>`;
+      if (com) return `${comPre ?? ''}<span class="tok-com">${com}</span>`;
       if (kw) return `<span class="tok-kw">${kw}</span>`;
       if (num) return `<span class="tok-num">${num}</span>`;
       return match;

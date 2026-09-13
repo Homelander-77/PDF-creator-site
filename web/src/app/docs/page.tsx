@@ -1,8 +1,12 @@
 import type { Metadata } from 'next';
+import { API_BASE } from '@/lib/site';
+import { PLANS, num } from '@/lib/plans';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { CodeBlock } from '@/components/code-block';
 import { DocsNav } from '@/components/docs-nav';
+import { DocsSearch } from '@/components/docs-search';
+import { RequestBuilder } from '@/components/request-builder';
 import { Badge } from '@/components/ui';
 
 export const metadata: Metadata = {
@@ -39,6 +43,16 @@ export default function DocsPage() {
               Один эндпоинт для конвертации, ключ в заголовке, PDF в ответе.
               Ниже — всё, что нужно знать.
             </p>
+
+            {/*
+              Поиск стоит здесь, а не в боковой навигации: на телефоне
+              её просто нет, а искать оттуда хочется в первую очередь.
+              Cmd+K и «/» работают на всей странице независимо от того,
+              видно кнопку или нет.
+            */}
+            <div className="mt-6 max-w-[320px]">
+              <DocsSearch />
+            </div>
           </div>
 
           {/* ---------------------------- Quickstart --------------------- */}
@@ -49,7 +63,7 @@ export default function DocsPage() {
             </P>
             <CodeBlock
               lang="bash"
-              code={`curl -X POST https://api.pdfapi.dev/v1/convert \\
+              code={`curl -X POST ${API_BASE}/v1/convert \\
   -H "Authorization: Bearer pdf_live_ВАШ_КЛЮЧ" \\
   -H "Content-Type: application/json" \\
   -d '{"source":"html","html":"<h1>Привет</h1>"}' \\
@@ -112,7 +126,7 @@ X-API-Key: pdf_live_xK9pQ2mRt7vN...`}
             <CodeBlock
               lang="javascript"
               filename="convert.js"
-              code={`const res = await fetch('https://api.pdfapi.dev/v1/convert', {
+              code={`const res = await fetch('${API_BASE}/v1/convert', {
   method: 'POST',
   headers: {
     Authorization: \`Bearer \${process.env.PDF_KEY}\`,
@@ -128,6 +142,16 @@ X-API-Key: pdf_live_xK9pQ2mRt7vN...`}
 if (!res.ok) throw new Error(await res.text());
 const pdf = Buffer.from(await res.arrayBuffer());`}
             />
+
+            <div id="builder" className="scroll-mt-24 pt-4">
+              <H3>Соберите свой запрос</H3>
+              <P>
+                Переключатели ниже собирают тело запроса и готовый код. В{' '}
+                <Code>options</Code> попадает только то, что отличается от
+                значений по умолчанию — копировать лишнее незачем.
+              </P>
+              <RequestBuilder />
+            </div>
 
             <Callout tone="warn">
               Адрес в <Code>source: url</Code> резолвится и проверяется до
@@ -168,13 +192,19 @@ const pdf = Buffer.from(await res.arrayBuffer());`}
               Считаются <b>страницы готового документа</b>, а не запросы.
               Документ на сорок страниц стоит сорок.
             </P>
+            {/*
+              Цифры берутся из lib/plans.ts — того же файла, из которого
+              их читают лендинг и калькулятор. Документация, расходящаяся
+              с прайсом, хуже, чем её отсутствие.
+            */}
             <Table
               head={['Тариф', 'Страниц в месяц', 'Запросов в секунду', 'Всплеск']}
-              rows={[
-                ['free', '100', '1', '3'],
-                ['premium', '10 000', '10', '30'],
-                ['business', '100 000', '50', '150'],
-              ]}
+              rows={PLANS.map((p) => [
+                p.id,
+                num(p.pages),
+                String(p.rps),
+                String(p.burst),
+              ])}
             />
             <P>
               Страница резервируется до рендера и доначисляется после — реальный
@@ -219,13 +249,33 @@ const pdf = Buffer.from(await res.arrayBuffer());`}
 
           {/* ------------------------------ SDK -------------------------- */}
           <Section id="sdk" title="Примеры на языках">
+            <H3>Node.js</H3>
+            <CodeBlock
+              lang="javascript"
+              code={`import { writeFile } from 'node:fs/promises';
+
+const res = await fetch('${API_BASE}/v1/convert', {
+  method: 'POST',
+  headers: {
+    Authorization: \`Bearer \${process.env.PDF_KEY}\`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ source: 'html', html: '<h1>Отчёт</h1>' }),
+});
+
+if (!res.ok) throw new Error(await res.text());
+
+await writeFile('report.pdf', Buffer.from(await res.arrayBuffer()));
+console.log('страниц:', res.headers.get('X-Pages-Rendered'));`}
+            />
+
             <H3>Python</H3>
             <CodeBlock
               lang="python"
               code={`import os, requests
 
 res = requests.post(
-    "https://api.pdfapi.dev/v1/convert",
+    "${API_BASE}/v1/convert",
     headers={"Authorization": f"Bearer {os.environ['PDF_KEY']}"},
     json={"source": "html", "html": "<h1>Отчёт</h1>"},
     timeout=60,
@@ -241,7 +291,7 @@ print("страниц:", res.headers["X-Pages-Rendered"])`}
             <H3>PHP</H3>
             <CodeBlock
               lang="php"
-              code={`$ch = curl_init('https://api.pdfapi.dev/v1/convert');
+              code={`$ch = curl_init('${API_BASE}/v1/convert');
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_RETURNTRANSFER => true,
@@ -266,11 +316,51 @@ file_put_contents('invoice.pdf', curl_exec($ch));`}
 })
 
 req, _ := http.NewRequest("POST",
-    "https://api.pdfapi.dev/v1/convert", bytes.NewReader(body))
+    "${API_BASE}/v1/convert", bytes.NewReader(body))
 req.Header.Set("Authorization", "Bearer "+os.Getenv("PDF_KEY"))
 req.Header.Set("Content-Type", "application/json")
 
 res, err := http.DefaultClient.Do(req)`}
+            />
+
+            <H3>Ruby</H3>
+            <CodeBlock
+              lang="ruby"
+              code={`require 'net/http'
+require 'json'
+
+uri = URI('${API_BASE}/v1/convert')
+
+req = Net::HTTP::Post.new(uri)
+req['Authorization'] = "Bearer #{ENV.fetch('PDF_KEY')}"
+req['Content-Type']  = 'application/json'
+req.body = JSON.dump(source: 'html', html: '<h1>Договор</h1>')
+
+res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
+raise res.body unless res.is_a?(Net::HTTPSuccess)
+
+File.binwrite('contract.pdf', res.body)`}
+            />
+
+            <H3>C#</H3>
+            <CodeBlock
+              lang="csharp"
+              code={`using var http = new HttpClient();
+http.DefaultRequestHeaders.Authorization =
+    new AuthenticationHeaderValue("Bearer", Environment.GetEnvironmentVariable("PDF_KEY"));
+
+var payload = JsonSerializer.Serialize(new
+{
+    source = "html",
+    html = "<h1>Смета</h1>",
+});
+
+var res = await http.PostAsync(
+    "${API_BASE}/v1/convert",
+    new StringContent(payload, Encoding.UTF8, "application/json"));
+
+res.EnsureSuccessStatusCode();
+await File.WriteAllBytesAsync("estimate.pdf", await res.Content.ReadAsByteArrayAsync());`}
             />
           </Section>
         </main>

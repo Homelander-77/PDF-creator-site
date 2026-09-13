@@ -34,4 +34,15 @@ export const SITE_NAME = 'pdfapi';
 export const PUBLIC_ROUTES = [
   { path: '/', priority: 1, changeFrequency: 'weekly' as const },
   { path: '/docs', priority: 0.8, changeFrequency: 'weekly' as const },
+  { path: '/pricing', priority: 0.9, changeFrequency: 'monthly' as const },
 ];
+
+/**
+ * Адрес API в примерах документации.
+ *
+ * Домена пока нет, поэтому он тоже вынесен в одно место: когда появится
+ * настоящий, примеры во всей документации поменяются разом, а не
+ * тридцатью правками по файлу.
+ */
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.pdfapi.dev';

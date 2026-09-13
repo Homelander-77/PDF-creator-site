@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 
 const BASE = 'http://localhost:4000';
-const PAGES = ['/', '/docs', '/login', '/register', '/forgot', '/reset?token=t', '/verify?token=t'];
+const PAGES = ['/', '/pricing', '/docs', '/login', '/register', '/forgot', '/reset?token=t', '/verify?token=t'];
 
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const problems = [];

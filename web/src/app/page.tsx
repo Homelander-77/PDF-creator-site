@@ -3,6 +3,12 @@ import Link from 'next/link';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 
+import { HeroDemo } from '@/components/hero-demo';
+import { CodeBlock } from '@/components/code-block';
+import { PlanCards } from '@/components/plan-cards';
+import { API_BASE } from '@/lib/site';
+import { Badge, Button, Card, Reveal } from '@/components/ui';
+
 /**
  * Каждая индексируемая страница называет свой настоящий адрес сама.
  * Иначе поисковик, встретив главную по адресу с ?utm_source=... или со
@@ -11,9 +17,6 @@ import { Footer } from '@/components/footer';
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
 };
-import { HeroDemo } from '@/components/hero-demo';
-import { CodeBlock } from '@/components/code-block';
-import { Badge, Button, Card, Reveal } from '@/components/ui';
 
 const FEATURES = [
   {
@@ -53,7 +56,7 @@ const STEPS = [
     n: '01',
     title: 'Заведите ключ',
     text: 'Регистрация по почте, подтверждение, ключ в кабинете. Минута.',
-    code: `curl -X POST https://api.pdfapi.dev/v1/keys \\
+    code: `curl -X POST ${API_BASE}/v1/keys \\
   -H "Authorization: Bearer pdf_live_..." \\
   -d '{"name":"production"}'`,
   },
@@ -61,7 +64,7 @@ const STEPS = [
     n: '02',
     title: 'Отправьте документ',
     text: 'HTML, ссылку или Markdown. Настройки полей и ориентации — по желанию.',
-    code: `const res = await fetch('https://api.pdfapi.dev/v1/convert', {
+    code: `const res = await fetch('${API_BASE}/v1/convert', {
   method: 'POST',
   headers: {
     Authorization: 'Bearer ' + process.env.PDF_KEY,
@@ -77,59 +80,6 @@ const STEPS = [
     code: `const pdf = Buffer.from(await res.arrayBuffer());
 res.headers.get('X-Pages-Rendered');   // 7
 res.headers.get('X-Quota-Remaining');  // 9931`,
-  },
-];
-
-const PLANS = [
-  {
-    id: 'free',
-    name: 'Free',
-    price: '0',
-    period: '',
-    pages: '100 страниц в месяц',
-    features: [
-      'HTML в PDF',
-      '1 запрос в секунду',
-      'Водяной знак',
-      'Один ключ',
-    ],
-    cta: 'Начать бесплатно',
-    href: '/register',
-    accent: false,
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: '25',
-    period: '$ в месяц',
-    pages: '10 000 страниц в месяц',
-    features: [
-      'HTML, URL, Markdown, Office',
-      '10 запросов в секунду',
-      'Без водяного знака',
-      'Ключи под каждое окружение',
-      'Webhooks',
-    ],
-    cta: 'Попробовать',
-    href: '/register',
-    accent: true,
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    price: '99',
-    period: '$ в месяц',
-    pages: '100 000 страниц в месяц',
-    features: [
-      'Всё из Premium',
-      '50 запросов в секунду',
-      'Приоритетная очередь',
-      'SLA 99,9%',
-      'Поддержка в один рабочий день',
-    ],
-    cta: 'Связаться',
-    href: '/register',
-    accent: false,
   },
 ];
 
@@ -276,57 +226,17 @@ export default function LandingPage() {
               </div>
             </Reveal>
 
-            <div className="mt-12 grid gap-4 lg:grid-cols-3">
-              {PLANS.map((p, i) => (
-                <Reveal key={p.id} delay={i * 70}>
-                  <Card
-                    hover
-                    className={cnPlan(p.accent)}
-                  >
-                    {p.accent && (
-                      <div className="absolute -top-3 left-6">
-                        <Badge tone="accent">Популярный</Badge>
-                      </div>
-                    )}
+            <div className="mt-12">
+              <PlanCards />
+            </div>
 
-                    <div className="mb-1 text-[15px] font-medium">{p.name}</div>
-                    <div className="mb-1 flex items-baseline gap-1">
-                      <span className="text-[40px] font-semibold tracking-[-0.03em]">
-                        {p.price}
-                      </span>
-                      <span className="text-[15px] text-muted">
-                        {p.period || '₽'}
-                      </span>
-                    </div>
-                    <div className="mb-6 text-[14px] text-muted">{p.pages}</div>
-
-                    <Link href={p.href} className="block">
-                      <Button
-                        variant={p.accent ? 'primary' : 'secondary'}
-                        className="w-full"
-                      >
-                        {p.cta}
-                      </Button>
-                    </Link>
-
-                    <ul className="mt-6 space-y-2.5">
-                      {p.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2.5 text-[14px] text-muted">
-                          <svg
-                            className="mt-[3px] shrink-0 text-accent"
-                            width="14" height="14" viewBox="0 0 24 24"
-                            fill="none" stroke="currentColor" strokeWidth="2.5"
-                            strokeLinecap="round" strokeLinejoin="round"
-                          >
-                            <path d="M20 6 9 17l-5-5" />
-                          </svg>
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                  </Card>
-                </Reveal>
-              ))}
+            <div className="mt-8 text-center">
+              <Link
+                href="/pricing"
+                className="text-[15px] text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent"
+              >
+                Калькулятор объёма и сравнение со своим сервером →
+              </Link>
             </div>
           </div>
         </section>
@@ -370,13 +280,4 @@ export default function LandingPage() {
       <Footer />
     </>
   );
-}
-
-function cnPlan(accent: boolean) {
-  return [
-    'relative h-full p-6',
-    accent ? 'border-accent/40 shadow-[var(--shadow-md)]' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
 }

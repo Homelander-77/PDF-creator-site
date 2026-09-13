@@ -9,7 +9,7 @@ import { useSession } from '@/hooks/use-session';
 
 const NAV = [
   { href: '/#features', label: 'Возможности' },
-  { href: '/#pricing', label: 'Тарифы' },
+  { href: '/pricing', label: 'Тарифы' },
   { href: '/docs', label: 'Документация' },
 ];
 
