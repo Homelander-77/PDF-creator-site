@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Logo } from '@/components/logo';
 
 const GROUPS = [
   {
@@ -32,7 +33,10 @@ export function Footer() {
     <footer className="border-t border-border">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div className="mb-3 font-semibold tracking-tight">pdfapi</div>
+          <div className="mb-3 flex items-center gap-2 font-semibold tracking-tight">
+            <Logo size={24} />
+            pdfapi
+          </div>
           <p className="max-w-[26ch] text-sm leading-relaxed text-muted">
             HTML, Markdown и Office в PDF. Один HTTP-запрос, никакого Chromium
             на вашей стороне.

@@ -6,6 +6,7 @@ import { Footer } from '@/components/footer';
 import { HeroDemo } from '@/components/hero-demo';
 import { CodeBlock } from '@/components/code-block';
 import { PlanCards } from '@/components/plan-cards';
+import { FlowDiagram } from '@/components/flow-diagram';
 import { API_BASE } from '@/lib/site';
 import { Badge, Button, Card, Reveal } from '@/components/ui';
 
@@ -184,8 +185,16 @@ export default function LandingPage() {
                 <h2 className="text-[30px] font-semibold leading-tight tracking-[-0.02em] sm:text-[40px]">
                   Три шага до первого PDF
                 </h2>
+                <p className="mt-4 text-[17px] leading-relaxed text-muted">
+                  С вашей стороны — один запрос. Всё остальное происходит
+                  у нас:
+                </p>
               </div>
             </Reveal>
+
+            <div className="mb-14">
+              <FlowDiagram />
+            </div>
 
             <div className="space-y-6">
               {STEPS.map((s, i) => (

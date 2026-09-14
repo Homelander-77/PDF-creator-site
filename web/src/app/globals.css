@@ -416,6 +416,151 @@ body {
 }
 
 /* ============================================================================
+   СХЕМА ПУТИ ЗАПРОСА
+
+   На телефоне — колонка сверху вниз, на широком экране — строка слева
+   направо. Обе раскладки собраны на flex: сетка здесь не нужна, потому что
+   связь между карточками — это такой же элемент потока, как и сама
+   карточка.
+   ========================================================================= */
+
+.flow {
+  display: flex;
+  flex-direction: column;
+}
+
+.flow-step {
+  display: flex;
+  flex-direction: column;
+}
+
+.flow-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+}
+
+.flow-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.flow-link {
+  position: relative;
+  overflow: hidden;
+  /* Вертикальная связь: тонкая полоса под значком карточки. */
+  width: 2px;
+  height: 26px;
+  margin-left: 2.25rem;
+  background: var(--border);
+}
+
+.flow-run {
+  position: absolute;
+  inset: 0;
+  animation: flow-y 2.8s linear infinite;
+  animation-delay: calc(var(--i) * 0.45s);
+}
+
+.flow-dot {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 9999px;
+  background: var(--accent);
+}
+
+@keyframes flow-y {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .flow {
+    flex-direction: row;
+    /* Ряд тянется по самой высокой карточке, а связи между ними
+       выравниваются по центру отдельно (align-self ниже). */
+    align-items: stretch;
+  }
+
+  .flow-step {
+    flex: 1 1 0;
+    flex-direction: row;
+    /* stretch, а не center: иначе карточка с более длинной подписью
+       становится выше соседей и ряд выглядит рваным. */
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  .flow-card {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    align-items: center;
+  }
+
+  .flow-link {
+    flex-shrink: 0;
+    align-self: center;
+    width: 28px;
+    height: 2px;
+    margin: 0 0.5rem;
+  }
+
+  .flow-run {
+    animation-name: flow-x;
+  }
+
+  .flow-dot {
+    top: 50%;
+    left: 0;
+    margin: -3px 0 0 0;
+  }
+}
+
+@keyframes flow-x {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
    ДОСТУПНОСТЬ
 
    Если человек попросил систему уменьшить анимацию — уважаем. Это не
@@ -437,6 +582,9 @@ body {
     transform: none;
   }
   .aurora {
+    display: none;
+  }
+  .flow-run {
     display: none;
   }
 }
