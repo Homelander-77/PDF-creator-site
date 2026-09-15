@@ -10,7 +10,7 @@ return n
 
 declare module 'ioredis' {
     interface RedisCommander<Context> {
-        rlHint(key: string, ttl: string): Promise<number>;
+        rlHit(key: string, ttl: string): Promise<number>;
     }
 }
 
@@ -23,7 +23,7 @@ export interface RateResult {
 
 export async function hit(key: string, limit: number, windowSec: number): Promise<RateResult> {
     try {
-        const n = await redis.rlHint(key, String(windowSec));
+        const n = await redis.rlHit(key, String(windowSec));
         if (n <= limit) return { allowed: true, retryAfterSec: 0 };
         const ttl = await redis.ttl(key);
         return { allowed: false, retryAfterSec: ttl > 0 ? ttl : windowSec };

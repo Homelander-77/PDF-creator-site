@@ -5,9 +5,7 @@ import { hashPassword, validatePassword } from '../passwords.js';
 import { issueToken, consumeToken } from '../tokens.js';
 import { mailer, verificationEmail, accountExistsEmail, resetEmail } from '../mailer.js'
 import { normalizeEmail } from '../normalizer.js'
-import { authenticate } from '../auth.js';
 import { hit } from '../ratelimits.js';
-import { send } from 'process';
 import { destroyAllSessions } from '../session.js';
 
 
@@ -119,6 +117,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         }
         const token = await issueToken(rows[0].id, 'reset', conf.resetTokenTtl);
         await mailer.send(resetEmail(email, `${conf.appUrl}/reset?token=${token}`));
+        reply.code(202).send(generic);
+        return;
     });
 
     app.post('/auth/reset', async (req, reply) => {

@@ -4,7 +4,6 @@ import { createKey, revokeKey } from '../key.js';
 import { query } from '../db.js';
 import { getPlan, currentPeriod } from '../plans.js';
 import { getUsage } from '../quota.js';
-import { create } from 'domain';
 
 
 export async function accountSessionRoutes(app: FastifyInstance): Promise<void> {

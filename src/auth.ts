@@ -17,21 +17,28 @@ declare module 'fastify' {
 function extractKey(req: FastifyRequest): string | null {
     const header = req.headers.authorization;
     if (header?.startsWith('Bearer ')) return header.slice(7).trim();
-    const alt = req.headers['z-api-key'];
+    const alt = req.headers['x-api-key'];
     if (typeof alt === 'string' && alt.length > 0) return alt.trim();
     return null;
 }
 
 export async function authenticate(req: FastifyRequest, reply: FastifyReply): Promise<void> {
     const key = await extractKey(req);
-    if (!key) return reply.code(401).send({ error: 'missing_api_key' });
+    if (!key) {
+        reply.code(401).send({ error: 'missing_api_key' });
+        return;
+    }
     const identity = await resolveKey(key);
-    if (!identity) return reply.code(401).send({ error: 'invalid_api_key' });
+    if (!identity) {
+        reply.code(401).send({ error: 'invalid_api_key' });
+        return;
+    }
     const plan = getPlan(identity.plan);
     const rate = await checkRate(identity.keyId, plan);
     console.log('rate:', rate);
     if (!rate.allowed) {
-        return reply.code(429).send({ error: 'not_allowed', retry_after_ms: rate.retryAfterMs });
+        reply.code(429).send({ error: 'not_allowed', retry_after_ms: rate.retryAfterMs });
+        return;
     }
     req.auth = {
         ...identity, planConfig: plan

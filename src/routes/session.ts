@@ -51,10 +51,11 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
             return;
         }
         const sessionId = await createSession(row?.id);
-        reply.setCookie('sid', sessionId, {
+        reply.setCookie(conf.cookieName, sessionId, {
             path: '/',
             httpOnly: true,
             sameSite: 'lax',
+            secure: conf.isProd,
             maxAge: conf.sessionTtl
         });
         await reset(byEmail);

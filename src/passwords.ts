@@ -7,7 +7,7 @@ const OPTS = {
     parallelism: 1
 };
 
-const SPECIAL_SYMBOLS: string[] = ["/", ".", ",", "?", "!", "&"];
+const SPECIAL_SYMBOLS: string[] = ["/", ".", ",", "?", "!", "&", "#"];
 
 export function hashPassword(plain: string): Promise<string> {
     return hash(plain, OPTS);

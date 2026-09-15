@@ -48,7 +48,7 @@ export async function resolveKey(rawKey: string): Promise<Identity | null> {
     const { rows } = await query<{
         id: string, user_id: string, plan: string, email_verified_at: string | null
     }>(
-        `SELECT k.id, k.user_id, u.plan, k.email_verified_at
+        `SELECT k.id, k.user_id, u.plan, u.email_verified_at
          FROM api_keys k
          JOIN users u ON u.id = k.user_id
          WHERE k.key_hash = $1 AND k.revoked_at IS NULL`,
