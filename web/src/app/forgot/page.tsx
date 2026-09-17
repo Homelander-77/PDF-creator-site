@@ -5,6 +5,8 @@ import { useState, type FormEvent } from 'react';
 import { AuthShell } from '@/components/auth-shell';
 import { Button, Input } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
+import { useCooldown } from '@/hooks/use-cooldown';
+import { formatWait } from '@/lib/time';
 
 export default function ForgotPage() {
   const [email, setEmail] = useState('');
@@ -12,15 +14,28 @@ export default function ForgotPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Здесь окно ограничителя длинное — три письма в три часа, — поэтому
+   * счётчик показывает часы и минуты. Без него человек видел бы «слишком
+   * много попыток» и не понимал, ждать минуту или до завтра.
+   */
+  const cooldown = useCooldown();
+
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (cooldown.active) return;
+
     setError(null);
     setLoading(true);
     try {
       await api.forgot(email);
       setSent(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Что-то пошло не так.');
+      if (err instanceof ApiError && err.retryAfterSec) {
+        cooldown.start(err.retryAfterSec);
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Что-то пошло не так.');
+      }
     } finally {
       setLoading(false);
     }
@@ -56,7 +71,22 @@ export default function ForgotPage() {
             placeholder="you@company.com"
           />
 
-          {error && (
+          {cooldown.active && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="animate-fade-in rounded-[10px] border border-warning/25 bg-warning/8 px-3.5 py-2.5 text-[14px] text-warning"
+            >
+              Ссылку уже отправляли несколько раз. Следующая будет доступна
+              через{' '}
+              <span className="font-medium tabular-nums">
+                {formatWait(cooldown.left)}
+              </span>
+              .
+            </div>
+          )}
+
+          {error && !cooldown.active && (
             <div
               role="alert"
               className="animate-fade-in rounded-[10px] border border-danger/25 bg-danger/8 px-3.5 py-2.5 text-[14px] text-danger"
@@ -65,8 +95,20 @@ export default function ForgotPage() {
             </div>
           )}
 
-          <Button type="submit" size="lg" loading={loading} className="w-full">
-            Отправить ссылку
+          <Button
+            type="submit"
+            size="lg"
+            loading={loading}
+            disabled={cooldown.active}
+            className="w-full"
+          >
+            {cooldown.active ? (
+              <span className="tabular-nums">
+                Повтор через {formatWait(cooldown.left)}
+              </span>
+            ) : (
+              'Отправить ссылку'
+            )}
           </Button>
         </form>
       )}

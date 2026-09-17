@@ -6,6 +6,8 @@ import { useState, type FormEvent } from 'react';
 import { AuthShell } from '@/components/auth-shell';
 import { Button, Input } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
+import { useCooldown } from '@/hooks/use-cooldown';
+import { formatWait } from '@/lib/time';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,8 +17,18 @@ export default function LoginPage() {
   const [needsVerify, setNeedsVerify] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Ограничитель на сервере считает по адресу и по IP. Когда он срабатывает,
+   * сервер сообщает, сколько ещё ждать, — и это единственный случай, когда
+   * повторять запрос бессмысленно не «наверное», а точно. Поэтому кнопка
+   * гаснет до конца срока, а не предлагает потыкать ещё.
+   */
+  const cooldown = useCooldown();
+
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (cooldown.active) return;
+
     setError(null);
     setNeedsVerify(false);
     setLoading(true);
@@ -27,10 +39,16 @@ export default function LoginPage() {
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
-        // Отдельная ветка: человек всё сделал правильно, просто не дошёл
-        // до почты. Показываем не «ошибку», а следующий шаг.
-        if (err.code === 'email_not_verified') setNeedsVerify(true);
+        if (err.retryAfterSec) {
+          // Текст берёт на себя счётчик ниже — он живой и не устареет
+          // через секунду после показа.
+          cooldown.start(err.retryAfterSec);
+        } else {
+          setError(err.message);
+          // Отдельная ветка: человек всё сделал правильно, просто не дошёл
+          // до почты. Показываем не «ошибку», а следующий шаг.
+          if (err.code === 'email_not_verified') setNeedsVerify(true);
+        }
       } else {
         setError('Что-то пошло не так.');
       }
@@ -88,7 +106,21 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {error && (
+        {cooldown.active && (
+          <div
+            role="alert"
+            aria-live="polite"
+            className="animate-fade-in rounded-[10px] border border-warning/25 bg-warning/8 px-3.5 py-2.5 text-[14px] text-warning"
+          >
+            Слишком много попыток входа. Повторить можно через{' '}
+            <span className="font-medium tabular-nums">
+              {formatWait(cooldown.left)}
+            </span>
+            .
+          </div>
+        )}
+
+        {error && !cooldown.active && (
           <div
             role="alert"
             className="animate-fade-in rounded-[10px] border border-danger/25 bg-danger/8 px-3.5 py-2.5 text-[14px] text-danger"
@@ -106,8 +138,20 @@ export default function LoginPage() {
           </div>
         )}
 
-        <Button type="submit" size="lg" loading={loading} className="w-full">
-          Войти
+        <Button
+          type="submit"
+          size="lg"
+          loading={loading}
+          disabled={cooldown.active}
+          className="w-full"
+        >
+          {cooldown.active ? (
+            <span className="tabular-nums">
+              Повтор через {formatWait(cooldown.left)}
+            </span>
+          ) : (
+            'Войти'
+          )}
         </Button>
       </form>
     </AuthShell>

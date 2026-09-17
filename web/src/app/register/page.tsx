@@ -7,6 +7,8 @@ import { PasswordRules } from '@/components/password-rules';
 import { Button, Input } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
 import { isValidPassword } from '@/lib/password';
+import { useCooldown } from '@/hooks/use-cooldown';
+import { formatWait } from '@/lib/time';
 
 export default function RegisterPage() {
     const [email, setEmail] = useState('');
@@ -16,17 +18,30 @@ export default function RegisterPage() {
     const [sent, setSent] = useState(false);
     const [resent, setResent] = useState<'idle' | 'sending' | 'done'>('idle');
 
+    /**
+     * Один счётчик на обе кнопки — и регистрацию, и повторную отправку.
+     * Оба обращения ограничиваются сервером по одному и тому же адресу,
+     * так что разделять их незачем.
+     */
+    const cooldown = useCooldown();
+
     const valid = useMemo(() => isValidPassword(password), [password]);
 
     async function submit(e: FormEvent) {
         e.preventDefault();
+        if (cooldown.active) return;
+
         setError(null);
         setLoading(true);
         try {
             await api.register(email, password);
             setSent(true);
         } catch (err) {
-            setError(err instanceof ApiError ? err.message : 'Что-то пошло не так.');
+            if (err instanceof ApiError && err.retryAfterSec) {
+                cooldown.start(err.retryAfterSec);
+            } else {
+                setError(err instanceof ApiError ? err.message : 'Что-то пошло не так.');
+            }
         } finally {
             setLoading(false);
         }
@@ -39,7 +54,12 @@ export default function RegisterPage() {
                 subtitle={`Мы отправили ссылку подтверждения на ${email}. Перейдите по ней, чтобы завершить регистрацию.`}
                 footer={
                     <>
-                        {resent === 'done' ? (
+                        {cooldown.active ? (
+                            <span className="tabular-nums text-warning">
+                                Следующее письмо можно запросить через{' '}
+                                {formatWait(cooldown.left)}.
+                            </span>
+                        ) : resent === 'done' ? (
                             <span className="text-success">Письмо отправлено повторно.</span>
                         ) : (
                             <>
@@ -50,8 +70,17 @@ export default function RegisterPage() {
                                         // Раньше здесь был вызов без всякой обратной связи:
                                         // человек жал кнопку, и ровно ничего не происходило.
                                         setResent('sending');
-                                        await api.resend(email).catch(() => { });
-                                        setResent('done');
+                                        try {
+                                            await api.resend(email);
+                                            setResent('done');
+                                        } catch (err) {
+                                            // Ошибку тоже больше не глотаем молча: если
+                                            // сервер просит подождать, покажем сколько.
+                                            if (err instanceof ApiError && err.retryAfterSec) {
+                                                cooldown.start(err.retryAfterSec);
+                                            }
+                                            setResent('idle');
+                                        }
                                     }}
                                     className="text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent disabled:opacity-50"
                                 >
@@ -124,14 +153,34 @@ export default function RegisterPage() {
                     </div>
                 )}
 
+                {cooldown.active && (
+                    <div
+                        role="alert"
+                        aria-live="polite"
+                        className="animate-fade-in rounded-[10px] border border-warning/25 bg-warning/8 px-3.5 py-2.5 text-[14px] text-warning"
+                    >
+                        Слишком много попыток. Повторить можно через{' '}
+                        <span className="font-medium tabular-nums">
+                            {formatWait(cooldown.left)}
+                        </span>
+                        .
+                    </div>
+                )}
+
                 <Button
                     type="submit"
                     size="lg"
                     loading={loading}
-                    disabled={!valid}
+                    disabled={!valid || cooldown.active}
                     className="w-full"
                 >
-                    Создать аккаунт
+                    {cooldown.active ? (
+                        <span className="tabular-nums">
+                            Повтор через {formatWait(cooldown.left)}
+                        </span>
+                    ) : (
+                        'Создать аккаунт'
+                    )}
                 </Button>
 
                 <p className="text-center text-[12.5px] leading-relaxed text-subtle">

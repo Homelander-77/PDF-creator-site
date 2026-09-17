@@ -7,6 +7,8 @@
  * на свой же домен.
  */
 
+import { formatWait } from './time';
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -29,6 +31,19 @@ export class ApiError extends Error {
  */
 const PREFER_SERVER_MESSAGE = new Set(['weak_password', 'invalid_request']);
 
+/**
+ * Коды, при которых ожидание имеет смысл показывать числом.
+ *
+ * Для них сервер сообщает, сколько ещё ждать, и «подождите минуту» вместо
+ * настоящих сорока семи секунд — это хуже, чем ничего: человек ждёт
+ * дольше, чем нужно, или дёргает кнопку раньше времени и получает
+ * очередной отказ.
+ */
+const RETRY_MESSAGES: Record<string, (wait: string) => string> = {
+  too_many_attempts: (w) => `Слишком много попыток. Повторите через ${w}.`,
+  rate_limit_exceeded: (w) => `Слишком часто. Повторите через ${w}.`,
+};
+
 /** Человеческие формулировки вместо кодов. Ошибка — тоже часть интерфейса. */
 const MESSAGES: Record<string, string> = {
   invalid_credentials: 'Неверный адрес или пароль.',
@@ -43,6 +58,37 @@ const MESSAGES: Record<string, string> = {
   quota_exceeded: 'Исчерпан месячный лимит страниц.',
   rate_limit_exceeded: 'Слишком часто. Сбавьте темп.',
 };
+
+/**
+ * Сколько ещё ждать, по мнению сервера.
+ *
+ * Смотрим в двух местах. Заголовок Retry-After — стандартный и приходит от
+ * всех ограничителей, включая те, что стоят до нашего кода: балансировщик,
+ * прокси, защита от наплыва. Поле retry_after_sec в теле — наше
+ * собственное, его отдают /auth/login и /auth/forgot.
+ *
+ * Заголовок по стандарту бывает и числом секунд, и датой. Второй вариант
+ * встречается редко, но если его не разобрать, получится NaN и счётчик
+ * замрёт на нуле.
+ */
+function retryAfterOf(res: Response, data: unknown): number | undefined {
+  const body = (data as { retry_after_sec?: unknown }).retry_after_sec;
+  if (typeof body === 'number' && Number.isFinite(body) && body > 0) {
+    return Math.ceil(body);
+  }
+
+  const header = res.headers.get('Retry-After');
+  if (!header) return undefined;
+
+  const asNumber = Number(header);
+  if (Number.isFinite(asNumber)) return asNumber > 0 ? Math.ceil(asNumber) : undefined;
+
+  const asDate = Date.parse(header);
+  if (Number.isNaN(asDate)) return undefined;
+
+  const seconds = Math.ceil((asDate - Date.now()) / 1000);
+  return seconds > 0 ? seconds : undefined;
+}
 
 async function request<T>(
   path: string,
@@ -69,12 +115,19 @@ async function request<T>(
 
   if (!res.ok) {
     const code = String((data as { error?: string }).error ?? 'unknown');
-    const retry = (data as { retry_after_sec?: number }).retry_after_sec;
+    const retry = retryAfterOf(res, data);
     const fromServer = (data as { message?: string }).message;
 
-    const message = PREFER_SERVER_MESSAGE.has(code)
-      ? (fromServer ?? MESSAGES[code] ?? 'Что-то пошло не так.')
-      : (MESSAGES[code] ?? fromServer ?? 'Что-то пошло не так.');
+    // Если сервер назвал срок — собираем фразу с ним. Это точнее и нашего
+    // словаря, и серверного текста: там срок обычно не указан вовсе.
+    const withWait =
+      retry !== undefined ? RETRY_MESSAGES[code]?.(formatWait(retry)) : undefined;
+
+    const message =
+      withWait ??
+      (PREFER_SERVER_MESSAGE.has(code)
+        ? (fromServer ?? MESSAGES[code] ?? 'Что-то пошло не так.')
+        : (MESSAGES[code] ?? fromServer ?? 'Что-то пошло не так.'));
 
     throw new ApiError(res.status, code, String(message), retry);
   }
