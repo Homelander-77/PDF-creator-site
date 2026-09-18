@@ -30,7 +30,14 @@ export default function DocsPage() {
     <>
       <Header />
 
-      <div className="mx-auto flex max-w-6xl gap-12 px-5 py-12">
+      {/*
+        Колонка на телефоне, две колонки на широком экране.
+        До этого контейнер всегда был строкой: боковой список просто
+        прятался, и второй колонки не возникало. Теперь на телефоне
+        вместо него полоса с разделами, и она должна встать НАД
+        текстом, а не рядом с ним.
+      */}
+      <div className="mx-auto flex max-w-6xl flex-col px-5 py-12 lg:flex-row lg:gap-12">
         <DocsNav sections={SECTIONS} />
 
         <main className="page-enter min-w-0 flex-1 pb-16">
@@ -143,7 +150,7 @@ if (!res.ok) throw new Error(await res.text());
 const pdf = Buffer.from(await res.arrayBuffer());`}
             />
 
-            <div id="builder" className="scroll-mt-24 pt-4">
+            <div id="builder" className="scroll-mt-[7.5rem] pt-4 lg:scroll-mt-24">
               <H3>Соберите свой запрос</H3>
               <P>
                 Переключатели ниже собирают тело запроса и готовый код. В{' '}
@@ -383,7 +390,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="mb-16 scroll-mt-24">
+    <section id={id} className="mb-16 scroll-mt-[7.5rem] lg:scroll-mt-24">
       <h2 className="mb-5 border-b border-border pb-3 text-[26px] font-semibold tracking-[-0.02em]">
         {title}
       </h2>
