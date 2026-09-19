@@ -257,40 +257,52 @@ export function DocsSearch() {
                 className="max-h-[46vh] overflow-y-auto py-2"
               >
                 {results.map((entry, i) => (
+                  /**
+                   * Строка результата — сам элемент списка, без кнопки внутри.
+                   *
+                   * Кнопка тут была ошибкой: внутри role="option" не должно
+                   * быть своих интерактивных элементов, проверка доступности
+                   * ругается на вложенность. И она не нужна — клавиатура
+                   * работает не через фокус на строках, а через поле ввода:
+                   * оно держит фокус, а активную строку называет
+                   * aria-activedescendant. Мышь обслуживает обработчик
+                   * прямо здесь.
+                   */
                   <li
                     key={`${entry.href}-${entry.title}`}
                     id={`docs-result-${i}`}
                     role="option"
                     aria-selected={i === active}
+                    onClick={() => go(entry)}
+                    onMouseEnter={() => setActive(i)}
+                    className={[
+                      'flex cursor-pointer items-baseline gap-3 px-4 py-2.5 transition-colors duration-150',
+                      // Сплошная заливка, а не цветной текст по цветному
+                      // фону: так строка читается в обеих темах и видна
+                      // краем глаза при переборе стрелками.
+                      i === active ? 'bg-accent' : '',
+                    ].join(' ')}
                   >
-                    <button
-                      onClick={() => go(entry)}
-                      onMouseEnter={() => setActive(i)}
+                    <span
                       className={[
-                        'flex w-full items-baseline gap-3 px-4 py-2.5 text-left transition-colors duration-150',
-                        // Сплошная заливка, а не цветной текст по цветному
-                        // фону: так строка читается в обеих темах и видна
-                        // краем глаза при переборе стрелками.
-                        i === active ? 'bg-accent' : '',
+                        'text-[14.5px]',
+                        i === active ? 'text-accent-fg' : 'text-fg',
                       ].join(' ')}
                     >
-                      <span
-                        className={[
-                          'text-[14.5px]',
-                          i === active ? 'text-accent-fg' : 'text-fg',
-                        ].join(' ')}
-                      >
-                        {entry.title}
-                      </span>
-                      <span
-                        className={[
-                          'ml-auto shrink-0 text-[12px]',
-                          i === active ? 'text-accent-fg/75' : 'text-subtle',
-                        ].join(' ')}
-                      >
-                        {entry.section}
-                      </span>
-                    </button>
+                      {entry.title}
+                    </span>
+                    <span
+                      className={[
+                        'ml-auto shrink-0 text-[12px]',
+                        // Раньше здесь была прозрачность 75% — и подпись
+                        // раздела не дотягивала по контрасту до нормы.
+                        // Разницу в весе даёт кегль, приглушать цвет
+                        // поверх залитой строки уже нечем.
+                        i === active ? 'text-accent-fg' : 'text-subtle',
+                      ].join(' ')}
+                    >
+                      {entry.section}
+                    </span>
                   </li>
                 ))}
               </ul>

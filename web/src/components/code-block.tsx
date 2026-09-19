@@ -118,7 +118,18 @@ export function CodeBlock({
         </button>
       </div>
 
-      <pre className="overflow-x-auto p-4 text-[13px] leading-[1.7]">
+      {/*
+        tabIndex на <pre> — не украшение.
+
+        Длинные строки прокручиваются вбок, а до прокручиваемой области,
+        в которую нельзя поставить фокус, с клавиатуры не добраться:
+        стрелки двигают страницу, а не код. Проверка доступности ловит это
+        отдельным правилом. Ноль означает «в обычном порядке обхода».
+      */}
+      <pre
+        tabIndex={0}
+        className="overflow-x-auto p-4 text-[13px] leading-[1.7] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+      >
         <code
           className="font-mono"
           dangerouslySetInnerHTML={{ __html: highlight(code) }}

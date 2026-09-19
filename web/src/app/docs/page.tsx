@@ -450,7 +450,15 @@ function Callout({
 
 function Table({ head, rows }: { head: string[]; rows: string[][] }) {
   return (
-    <div className="overflow-x-auto rounded-[10px] border border-border">
+    /**
+     * Обёртка прокручивается вбок на узком экране — значит, в неё нужно
+     * уметь поставить фокус. Иначе с клавиатуры таблицу не досмотреть:
+     * стрелки будут двигать страницу, а не её содержимое.
+     */
+    <div
+      tabIndex={0}
+      className="overflow-x-auto rounded-[10px] border border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+    >
       <table className="w-full min-w-[520px] text-left text-[14px]">
         <thead className="bg-sunken">
           <tr>

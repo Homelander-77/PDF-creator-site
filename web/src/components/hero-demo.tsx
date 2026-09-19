@@ -100,7 +100,10 @@ export function HeroDemo() {
           <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
           <span className="ml-2 font-mono text-[12px] text-subtle">bash</span>
         </div>
-        <pre className="min-h-[150px] overflow-x-auto p-4 text-[12.5px] leading-[1.75] sm:min-h-[168px]">
+        <pre
+          tabIndex={0}
+          className="min-h-[150px] overflow-x-auto p-4 text-[12.5px] leading-[1.75] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent sm:min-h-[168px]"
+        >
           {/* Содержимое пишется напрямую через ref — React сюда не заглядывает. */}
           <code ref={codeRef} className={cn('font-mono text-fg', !done && 'caret')} />
         </pre>
