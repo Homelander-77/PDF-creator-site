@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { Badge, Button, Card, Reveal } from '@/components/ui';
+import { Badge, Card, Reveal } from '@/components/ui';
+import { PlanCta } from '@/components/plan-cta';
 import { PLANS, kop, num, pricePerPage, type PlanId } from '@/lib/plans';
 
 /**
@@ -64,14 +64,7 @@ export function PlanCards({ highlight }: { highlight?: PlanId | null }) {
                 {num(p.pages)} страниц в месяц
               </div>
 
-              <Link href={p.href} className="block">
-                <Button
-                  variant={chosen || p.popular ? 'primary' : 'secondary'}
-                  className="w-full"
-                >
-                  {p.cta}
-                </Button>
-              </Link>
+              <PlanCta plan={p} accent={chosen || p.popular} />
 
               <ul className="mt-6 space-y-2.5">
                 <li className="flex items-start gap-2.5 text-[14px] text-muted">

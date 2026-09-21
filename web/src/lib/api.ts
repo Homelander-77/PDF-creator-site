@@ -176,6 +176,23 @@ export interface Me {
   };
 }
 
+export type PaymentMethod = 'card' | 'sbp' | 'invoice';
+
+export interface Checkout {
+  /** Адрес формы провайдера для карты и СБП. */
+  payment_url?: string;
+  /** Для счёта юрлицу — ссылка на сам счёт. */
+  invoice_url?: string;
+  invoice_id?: string;
+}
+
+export interface Subscription {
+  plan: string;
+  status: 'none' | 'active' | 'past_due' | 'canceled';
+  current_period_end: string | null;
+  method: PaymentMethod | null;
+}
+
 /* ------------------------------ Методы --------------------------------- */
 
 export const api = {
@@ -234,4 +251,20 @@ export const api = {
 
   revokeKey: (id: string) =>
     request<void>(`/account/keys/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  /* ------------------------------ Оплата ------------------------------- *
+   *
+   * Номер карты у нас не вводится и через нас не проходит. Сервер создаёт
+   * платёж у провайдера и возвращает адрес его формы — туда и уходим.
+   * Это не только требование PCI DSS: принимать карты у себя значит
+   * отвечать за их хранение, а этого не хочется никому.
+   */
+
+  checkout: (plan: string, method: PaymentMethod) =>
+    request<Checkout>('/account/checkout', {
+      method: 'POST',
+      body: body({ plan, method }),
+    }),
+
+  subscription: () => request<Subscription>('/account/subscription'),
 };

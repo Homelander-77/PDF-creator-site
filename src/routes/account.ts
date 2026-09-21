@@ -4,6 +4,7 @@ import { createKey, revokeKey } from '../key.js';
 import { query } from '../db.js';
 import { currentPeriod } from '../plans.js';
 import { getUsage } from '../quota.js';
+import { conf } from '../config.js';
 
 
 export async function accountRoutes(app: FastifyInstance): Promise<void> {
@@ -63,5 +64,39 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
         const ok = await revokeKey(id, req.auth!.userId);
         if (!ok) return reply.code(404).send({ error: 'key_not_found' });
         return reply.code(204).send();
+    });
+
+    app.post('/account/checkout', { onRequest: authenticate }, async (req, reply) => {
+        if (!req.auth!.emailVerified) {
+            return reply.code(403).send({
+                error: 'email_not_verified',
+                message: 'Confirm your email address to realise keys.',
+            });
+        }
+        const id = req.params as { id: string };
+        const result = await query<{ plan: string }>(
+            `select plan from users
+             where user_id = $1`,
+            [id],
+        );
+        const currentPlan = result.rows[0]?.plan;
+        if (currentPlan !== 'free') {
+            return reply.code(409).send({
+                error: 'already_on_plan',
+                message: 'The user already has plan.'
+            });
+        }
+        const body = (req.body ?? {}) as { plan?: string, payMethod?: string };
+        if (typeof body.plan !== 'string' && typeof body.payMethod !== 'string'
+            && body.plan === '' && body.payMethod === '') {
+            return reply.code(400).send({
+                error: 'unknown_plan',
+                message: 'Error in paymethod or in plan.'
+            });
+        }
+        const { plan, payMethod } = body;
+
+
+
     });
 }
