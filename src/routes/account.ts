@@ -1,10 +1,14 @@
 import type { FastifyInstance } from 'fastify';
-import { authenticate } from '../auth.js';
+import { authenticate, requireSession } from '../auth.js';
 import { createKey, revokeKey } from '../key.js';
 import { query } from '../db.js';
 import { currentPeriod } from '../plans.js';
 import { getUsage } from '../quota.js';
 import { conf } from '../config.js';
+import { PLANS } from '../plans.js'
+
+const PAID = new Set(['premium', 'business']);
+const METHODS = new Set(['card', 'sbp', 'invoice']);
 
 
 export async function accountRoutes(app: FastifyInstance): Promise<void> {
@@ -66,37 +70,45 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
         return reply.code(204).send();
     });
 
-    app.post('/account/checkout', { onRequest: authenticate }, async (req, reply) => {
-        if (!req.auth!.emailVerified) {
-            return reply.code(403).send({
-                error: 'email_not_verified',
-                message: 'Confirm your email address to realise keys.',
-            });
+    app.post('/account/checkout', { onRequest: requireSession }, async (req, reply) => {
+        const { rows } = await query<{ plan: string; email_verified_at: string | null }>(
+            `select plan, email_verified_at from users where id = $1`,
+            [req.session!.userId],
+        )
+        if (rows.length === 0) {
+            reply.code(401).send({ error: 'not_authenticated' }); return;
         }
-        const id = req.params as { id: string };
-        const result = await query<{ plan: string }>(
-            `select plan from users
-             where user_id = $1`,
-            [id],
-        );
-        const currentPlan = result.rows[0]?.plan;
-        if (currentPlan !== 'free') {
-            return reply.code(409).send({
+        if (rows[0].email_verified_at === null) {
+            reply.code(403).send({ error: 'email_not_verified', message: 'Подтвердите почту перед оплатой.' });
+            return;
+        }
+        if (PAID.has(rows[0].plan)) {
+            reply.code(409).send({
                 error: 'already_on_plan',
-                message: 'The user already has plan.'
+                message: `Тариф уже оплачен до ${new Date(periodEnd).toLocaleDateString('ru')}.`,
             });
+            return;
         }
-        const body = (req.body ?? {}) as { plan?: string, payMethod?: string };
-        if (typeof body.plan !== 'string' && typeof body.payMethod !== 'string'
-            && body.plan === '' && body.payMethod === '') {
-            return reply.code(400).send({
-                error: 'unknown_plan',
-                message: 'Error in paymethod or in plan.'
+        const body = (req.body ?? {}) as { plan?: unknown; method?: unknown };
+        if (typeof body.plan !== 'string' || !PAID.has(body.plan)) {
+            reply.code(400).send({ error: "unknown_plan" }); return;
+        }
+        if (typeof body.method !== 'string' || !METHODS.has(body.method)) {
+            reply.code(400).send({ error: "unknown_method" }); return;
+        }
+
+        const { rows: [order] } = await query<{ id: string }>(
+            `insert into orders (user_id, plan, amount, method)
+   values ($1, $2, $3, $4) returning id`,
+            [req.session!.userId, body.plan, PLANS[body.plan].price, body.method],
+        );
+        if (body.method === 'invoice') {
+            reply.send({
+                invoice_id: order.id,
+                invoice_url: `${conf.appUrl}/invoice/${order.id}`,
             });
+            return;
         }
-        const { plan, payMethod } = body;
-
-
-
+        reply.send({ payment_url: `${conf.appUrl}/checkout/mock?order=${order.id}` });
     });
 }
