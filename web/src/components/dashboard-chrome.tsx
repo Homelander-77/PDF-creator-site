@@ -41,7 +41,7 @@ export function DashboardChrome({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-border bg-bg/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-border bg-bg/95">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-5">
           <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
             <Logo />

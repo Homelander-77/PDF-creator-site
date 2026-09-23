@@ -125,7 +125,7 @@ function MobileNav({
        * компенсируя отступы страницы, — иначе она выглядит как случайная
        * карточка посреди текста.
        */
-      className="sticky top-16 z-30 -mx-5 mb-6 border-b border-border bg-bg/90 backdrop-blur-md lg:hidden"
+      className="sticky top-16 z-30 -mx-5 mb-6 border-b border-border bg-bg/95 lg:hidden"
     >
       <button
         onClick={() => setOpen((v) => !v)}

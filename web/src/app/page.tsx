@@ -257,7 +257,7 @@ export default function LandingPage() {
               <div className="relative overflow-hidden rounded-[24px] border border-border bg-elevated px-6 py-14 text-center sm:px-14">
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute inset-x-0 -top-24 h-48 opacity-40 blur-3xl"
+                  className="pointer-events-none absolute inset-x-0 -top-24 h-48 opacity-40"
                   style={{
                     background:
                       'radial-gradient(ellipse at center, var(--accent), transparent 70%)',

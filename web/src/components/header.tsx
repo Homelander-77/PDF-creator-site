@@ -47,11 +47,13 @@ export function Header() {
     <header
       className={cn(
         'sticky top-0 z-40 w-full',
-        // backdrop-filter из перехода убран намеренно: его анимация
-        // заставляет браузер перерисовывать всё, что под шапкой, каждый кадр.
+        // Без backdrop-blur. Размытие под липкой шапкой пересчитывается на
+        // каждом кадре прокрутки — всё, что проезжает под ней, заново
+        // размывается. На Retina это вчетверо больше пикселей, и прокрутка
+        // начинает дёргаться. Почти непрозрачный фон выглядит так же.
         'transition-[background-color,border-color] duration-300',
         scrolled
-          ? 'border-b border-border bg-bg/85 backdrop-blur-md'
+          ? 'border-b border-border bg-bg/95'
           : 'border-b border-transparent',
       )}
     >

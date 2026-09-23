@@ -71,24 +71,19 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
     });
 
     app.post('/account/checkout', { onRequest: requireSession }, async (req, reply) => {
-        const { rows } = await query<{ plan: string; email_verified_at: string | null }>(
-            `select plan, email_verified_at from users where id = $1`,
+        const { rows } = await query<{ plan: string; email_verified_at: string | null; current_period_end: Date | null }>(
+            `select plan, email_verified_at, current_period_end from users where id = $1`,
             [req.session!.userId],
         )
         if (rows.length === 0) {
             reply.code(401).send({ error: 'not_authenticated' }); return;
         }
-        if (rows[0].email_verified_at === null) {
+        const user = rows[0]
+        if (user.email_verified_at === null) {
             reply.code(403).send({ error: 'email_not_verified', message: 'Подтвердите почту перед оплатой.' });
             return;
         }
-        if (PAID.has(rows[0].plan)) {
-            reply.code(409).send({
-                error: 'already_on_plan',
-                message: `Тариф уже оплачен до ${new Date(periodEnd).toLocaleDateString('ru')}.`,
-            });
-            return;
-        }
+
         const body = (req.body ?? {}) as { plan?: unknown; method?: unknown };
         if (typeof body.plan !== 'string' || !PAID.has(body.plan)) {
             reply.code(400).send({ error: "unknown_plan" }); return;
@@ -96,12 +91,21 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
         if (typeof body.method !== 'string' || !METHODS.has(body.method)) {
             reply.code(400).send({ error: "unknown_method" }); return;
         }
+        const plan = body.plan as keyof typeof PLANS;
+        if (user.plan === plan && user.current_period_end && user.current_period_end > new Date()) {
+            reply.code(409).send({
+                error: 'already_on_plan',
+                message: `Тариф уже оплачен до ${user.current_period_end.toLocaleDateString('ru')}.`,
+            });
+            return;
+        }
 
         const { rows: [order] } = await query<{ id: string }>(
             `insert into orders (user_id, plan, amount, method)
-   values ($1, $2, $3, $4) returning id`,
+             values ($1, $2, $3, $4) returning id`,
             [req.session!.userId, body.plan, PLANS[body.plan].price, body.method],
         );
+        // Payment placeholder
         if (body.method === 'invoice') {
             reply.send({
                 invoice_id: order.id,

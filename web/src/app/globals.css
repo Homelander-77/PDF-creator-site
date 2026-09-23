@@ -338,17 +338,22 @@ body {
   content: '';
   position: absolute;
   inset: -20%;
-  will-change: transform;
-  transform: translateZ(0);
 }
 
+/* Свечение неподвижное — и это решение по замеру, а не по вкусу.
+ *
+ * Раньше пятна медленно дрейфовали (drift-a/drift-b, 26 и 34 с). Сдвиг на
+ * 3–4 % глазом почти не виден, но стоил дорого: слой лежит под маской и
+ * прозрачностью, поэтому композитор пересобирал его КАЖДЫЙ кадр, даже когда
+ * страница просто открыта. На экране Retina (вдвое больше пикселей) замер
+ * дал ~80 % всей работы композитора на главной. Без дрейфа — ноль в покое.
+ */
 .aurora::before {
   background: radial-gradient(
     40% 46% at 34% 42%,
     var(--accent) 0%,
     transparent 68%
   );
-  animation: drift-a 26s ease-in-out infinite;
 }
 
 .aurora::after {
@@ -357,27 +362,6 @@ body {
     var(--accent-2) 0%,
     transparent 68%
   );
-  animation: drift-b 34s ease-in-out infinite;
-}
-
-/* Сдвиг маленький и очень медленный: свечение должно жить, а не плавать. */
-@keyframes drift-a {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(3%, -4%, 0);
-  }
-}
-@keyframes drift-b {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(-4%, 3%, 0);
-  }
 }
 
 /* В тёмной теме свечение читается хуже — даём ему чуть больше силы.
@@ -468,8 +452,16 @@ body {
 .flow-run {
   position: absolute;
   inset: 0;
-  animation: flow-y 2.8s linear infinite;
+  /* Не бесконечно: шесть пробегов (~17 с) показывают идею, дальше точки
+     гаснут и композитор отдыхает. Бесконечная анимация крутится и тогда,
+     когда схема давно уехала за экран. Стартует только после появления
+     схемы на экране — до этого её всё равно никто не видит. */
+  animation: flow-y 2.8s linear 6 both;
   animation-delay: calc(var(--i) * 0.45s);
+  animation-play-state: paused;
+}
+.reveal[data-visible='true'] .flow-run {
+  animation-play-state: running;
 }
 
 .flow-dot {

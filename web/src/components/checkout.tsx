@@ -172,8 +172,8 @@ export function Checkout() {
 
         {already && (
           <p className="mt-5 rounded-[10px] border border-success/25 bg-success/8 px-4 py-3 text-[14px] text-success">
-            Этот тариф у вас уже активен. Повторная оплата продлит его на
-            месяц вперёд.
+            Этот тариф у вас уже подключён. Оплатить следующий месяц можно,
+            когда закончится текущий.
           </p>
         )}
       </Card>
