@@ -1,0 +1,19 @@
+# зависимости и сборка
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# локальные настройки — в репозиторий только .env.example
+.env
+.env*.local
+
+# системное и локальное
+.DS_Store
+*.log
+Claude outputs/
+_to_delete/
+
+# мои локальные скрипты замеров, не часть сайта
+/audit.mjs
+/perf.mjs

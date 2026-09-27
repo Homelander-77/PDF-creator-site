@@ -35,7 +35,7 @@ end
 return limit - used
 `;
 
-export async function reverce(userId: string, start: Date, limit: number): Promise<number> {
+export async function reserve(userId: string, start: Date, limit: number): Promise<number> {
     const r = Number(await redis.eval(REVERSE_LUA, 1, key(userId, start), limit, TTL_EXP));
     return r === -1 ? 0 : r;
 }

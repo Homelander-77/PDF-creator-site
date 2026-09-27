@@ -45,7 +45,7 @@ export function DashboardChrome({ children }: { children: ReactNode }) {
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-5">
           <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
             <Logo />
-            <span className="hidden sm:inline">pdfapi</span>
+            <span className="sr-only sm:not-sr-only">pdfapi</span>
           </Link>
 
           <nav className="ml-2 hidden items-center gap-1 sm:flex">
