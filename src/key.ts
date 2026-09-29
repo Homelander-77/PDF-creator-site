@@ -55,7 +55,7 @@ export async function resolveKey(rawKey: string): Promise<Identity | null> {
         [hash],
     );
     if (rows.length === 0) {
-        await redis.set(`authkey:${hash}`, 'miss', 'EX', 30);
+        await redis.set(`authkey:${hash}`, 'miss', 'EX', 30).catch(() => { });
         return null;
     }
     const identity: Identity = {

@@ -35,11 +35,11 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
         return;
     }
     const plan = getPlan(identity.plan);
-    const windowSec = Math.cell(plan.burst / plan.ratePerSecond);
+    const windowSec = Math.ceil(plan.burst / plan.ratePerSecond);
     const rate = await hit(`rl:${identity.keyId}`, plan.burst, windowSec);
     if (!rate.allowed) {
         reply.header('Retry-After', rate.retryAfterSec);
-        reply.code(429).send({ error: 'rate_limit_exceed', retry_after_ms: rate.retryAfterSec });
+        reply.code(429).send({ error: 'rate_limit_exceeded', retry_after_sec: rate.retryAfterSec });
         return;
     }
     req.auth = {

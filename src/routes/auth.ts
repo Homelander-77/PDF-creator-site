@@ -112,7 +112,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
             [email],
         );
         if (rows.length === 0 || !rows[0].id) {
-            reply.code(202).send();
+            reply.code(202).send(generic);
             return;
         }
         const token = await issueToken(rows[0].id, 'reset', conf.resetTokenTtl);
@@ -145,6 +145,6 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
             [passwordHash, userId],
         );
         await destroyAllSessions(userId);
-        return { staftus: 'password_changed' }
+        return { status: 'password_changed' }
     });
 }

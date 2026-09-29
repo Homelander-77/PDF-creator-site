@@ -2,28 +2,39 @@ import type { FastifyInstance } from 'fastify';
 import { authenticate, requireSession } from '../auth.js';
 import { createKey, revokeKey } from '../key.js';
 import { query } from '../db.js';
-import { currentPeriod } from '../plans.js';
-import { used } from '../quota.js';
+import { used, periodStart } from '../quota.js';
 import { conf } from '../config.js';
-import { PLANS } from '../plans.js'
+import { PLANS, getPlan } from '../plans.js'
 
 const PAID = new Set(['premium', 'business']);
 const METHODS = new Set(['card', 'sbp', 'invoice']);
 
 
 export async function accountRoutes(app: FastifyInstance): Promise<void> {
-    app.get('/v1/me', { onRequest: authenticate }, async (req) => {
-        const auth = req.auth!;
-        const plan = auth.planConfig;
-        const usage = await used(auth.userId, plan);
+    app.get('/v1/me', { onRequest: authenticate }, async (req, reply) => {
+        const userId = req.auth!.userId;
+        const { rows: [user] } = await query<{
+            plan: string;
+            current_period_start: Date | null;
+            current_period_end: Date | null;
+        }>(
+            `select plan, current_period_start, current_period_end from users where id = $1`,
+            [userId],
+        );
+        if (!user) return reply.code(401).send({ error: 'invalid_api_key' });
+        const active = user.current_period_end !== null && user.current_period_end > new Date();
+        const plan = getPlan(active ? user.plan : 'free');
+        const start = periodStart(user);
+        const spent = await used(userId, start);
+
         return {
-            user_id: auth.userId,
+            user_id: userId,
             plan: plan.id,
-            period: currentPeriod(),
+            period: start.toISOString().slice(0, 10),
             usage: {
-                pages_used: usage.used,
-                pages_limit: usage.limit,
-                pages_remaining: usage.remaining,
+                pages_used: spent,
+                pages_limit: plan.pagesPerMonth,
+                pages_remaining: Math.max(0, plan.pagesPerMonth - spent),
             },
             limits: {
                 requests_per_second: plan.ratePerSecond,
@@ -31,37 +42,6 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
             },
         };
     })
-
-    app.get('/v1/keys', { onRequest: authenticate }, async (req) => {
-        const { rows } = await query(
-            `SELECT id, name, key_prefix, last_used_at, created_at
-             FROM api_keys
-             WHERE user_id = $1 AND revoked_at IS NULL
-             ORDER BY created_at`,
-            [req.auth!.userId],
-        );
-        return { keys: rows };
-    });
-
-    app.post('/v1/keys', { onRequest: authenticate }, async (req, reply) => {
-        if (!req.auth!.emailVerified) {
-            return reply.code(403).send({
-                error: 'email_not_verified',
-                message: 'Confirm your email address to realise keys.',
-            });
-        }
-        const body = (req.body ?? {}) as { name?: unknown };
-        const name = typeof body.name === 'string' && body.name.trim().length > 0
-            ? body.name.trim().slice(0, 64) : 'default';
-        const key = await createKey(req.auth!.userId, name);
-        return reply.code(201).send({
-            id: key.id,
-            name,
-            prefix: key.prefix,
-            api_key: key.raw,
-            warning: 'Save your key, otherwise restore it impossible.'
-        });
-    });
 
     app.delete('/v1/keys/:id', { onRequest: authenticate }, async (req, reply) => {
         const { id } = req.params as { id: string };

@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { normalizeEmail } from '../normalizer.js';
 import { hit, reset } from '../ratelimits.js';
 import { query } from '../db.js';
-import { hashPassword, verifyPassword } from '../passwords.js'
+import { verifyPassword } from '../passwords.js'
 import { createSession, destroySession } from '../session.js';
 import { conf } from '../config.js';
 import { requireSession } from '../auth.js';

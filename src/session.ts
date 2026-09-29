@@ -40,7 +40,7 @@ export async function destroyAllSessions(userId: string) {
     const key = userSetKey(userId);
     const hashes = await redis.smembers(key);
     if (hashes.length > 0) {
-        await redis.del(...hashes.map((h) => `${sessionKey(h)}`));
+        await redis.del(...hashes.map((h) => `sess:${h}`));
     }
     await redis.del(key);
 }
