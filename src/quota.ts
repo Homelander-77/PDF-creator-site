@@ -1,6 +1,6 @@
 import { redis } from './redis.js';
 
-const TTL_EXP = 30 * 24 * 3600
+const TTL_EXP = 35 * 24 * 3600
 export type Period = {
     current_period_start: Date | null;
     current_period_end: Date | null;

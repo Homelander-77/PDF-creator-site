@@ -9,7 +9,6 @@ const userSetKey = (userId: string) => `user-session:${userId}`;
 export async function createSession(userId: string): Promise<string> {
     const sid = randomBytes(32).toString('base64url');
     await redis.set(sessionKey(sid), JSON.stringify({ userId }), 'EX', conf.sessionTtl).catch(() => { });
-    await destroyAllSessions(userId);
     await redis.sadd(userSetKey(userId), sidHash(sid));
     await redis.expire(userSetKey(userId), conf.sessionTtl);
     return sid;
@@ -41,7 +40,7 @@ export async function destroyAllSessions(userId: string) {
     const key = userSetKey(userId);
     const hashes = await redis.smembers(key);
     if (hashes.length > 0) {
-        await redis.del(...hashes.map((h) => `sess:${sessionKey(h)}`));
+        await redis.del(...hashes.map((h) => `${sessionKey(h)}`));
     }
     await redis.del(key);
 }

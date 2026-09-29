@@ -3,23 +3,21 @@ import { authenticate } from '../auth.js';
 import { query } from '../db.js';
 import { PLANS } from '../plans.js';
 import { periodStart, reserve, commit, release, used } from '../quota.js';
-import { render, RenderError, type RenderInput } from '../render';
 
 const SOURCES = new Set(['html', 'url', 'markdown']);
 const HTTP_CODE = { url_not_allowed: 400, render_failed: 502, render_timeout: 504, unavailable: 503 };
 
-export async function convertRouted(app: FastifyInstance) {
-    app.post('/v1/convert', { onRequest: authenticate, bodyLimit: 5 * 2 ^ 20 },
+export async function convertRoutes(app: FastifyInstance) {
+    app.post('/v1/convert', { onRequest: authenticate, bodyLimit: 5 * 1024 * 1024 },
         async (req, reply) => {
-            const userId = req.auth?.keyId;
-
+            const userId = req.auth?.userId;
             const { rows: [user] } = await query<{
                 plan: string;
                 email_verified_at: Date | null;
                 current_period_start: Date | null;
                 current_period_end: Date | null;
             }>(
-                `select plan, email_veridied_at, current_period_start, current_period_end
+                `select plan, email_verified_at, current_period_start, current_period_end
 from users where id = $1`,
                 [userId],
             );
@@ -28,7 +26,5 @@ from users where id = $1`,
 
             const active = user.current_period_end !== null && user.current_period_end > new Date();
             const plan = (active ? user.plan : 'free') as keyof typeof PLANS;
-
-
         });
 }

@@ -2,7 +2,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { fastifyCookie } from '@fastify/cookie';
 import { resolveKey, type Identity } from './key.js';
 import { getPlan, type Plan } from './plans.js';
-import { checkRate } from './quota.js'
+import { hit } from './ratelimits.js'
 import { conf } from './config.js';
 import { getSession } from './session.js';
 
@@ -24,7 +24,7 @@ function extractKey(req: FastifyRequest): string | null {
 }
 
 export async function authenticate(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const key = await extractKey(req);
+    const key = extractKey(req);
     if (!key) {
         reply.code(401).send({ error: 'missing_api_key' });
         return;
@@ -35,10 +35,11 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
         return;
     }
     const plan = getPlan(identity.plan);
-    const rate = await checkRate(identity.keyId, plan);
-    console.log('rate:', rate);
+    const windowSec = Math.cell(plan.burst / plan.ratePerSecond);
+    const rate = await hit(`rl:${identity.keyId}`, plan.burst, windowSec);
     if (!rate.allowed) {
-        reply.code(429).send({ error: 'not_allowed', retry_after_ms: rate.retryAfterMs });
+        reply.header('Retry-After', rate.retryAfterSec);
+        reply.code(429).send({ error: 'rate_limit_exceed', retry_after_ms: rate.retryAfterSec });
         return;
     }
     req.auth = {
