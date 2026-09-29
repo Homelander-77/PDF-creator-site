@@ -2,34 +2,42 @@ import type { FastifyInstance } from 'fastify';
 import { requireSession } from '../auth.js';
 import { createKey, revokeKey } from '../key.js';
 import { query } from '../db.js';
-import { getPlan, currentPeriod } from '../plans.js';
-import { getUsage } from '../quota.js';
+import { getPlan } from '../plans.js';
+import { used, periodStart } from '../quota.js';
 
 
 export async function accountSessionRoutes(app: FastifyInstance): Promise<void> {
     app.get('/account/me', { onRequest: requireSession }, async (req, reply) => {
-        const { rows } = await query<{ plan: string }>(
-            `select plan from users where id = $1`,
+        const { rows: [user] } = await query<{
+            plan: string;
+            current_period_start: Date | null;
+            current_period_end: Date | null;
+        }>(
+            `select plan, current_period_start, current_period_end from users where id = $1`,
             [req.session!.userId],
         );
-        if (rows.length === 0) return reply.code(401).send({ error: 'not_authenticated' });
+        if (!user) return reply.code(401).send({ error: 'not_authenticated' });
 
-        const plan = getPlan(rows[0].plan);
-        const usage = await getUsage(req.session!.userId, plan);
+        const active = user.current_period_end !== null && user.current_period_end > new Date();
+        const plan = getPlan(active ? user.plan : 'free');
+
+        const start = periodStart(user)
+        const spent = await used(req.session!.userId, start);
+
         return {
             user_id: req.session!.userId,
             plan: plan.id,
-            period: currentPeriod(),
+            period: start.toISOString().slice(0, 10),
             usage: {
-                pages_used: usage.used,
-                pages_limit: usage.limit,
-                pages_remaining: usage.remaining,
+                pages_used: spent,
+                pages_limit: plan.pagesPerMonth,
+                pages_remaining: Math.max(0, plan.pagesPerMonth - spent),
             },
             limits: {
                 requests_per_second: plan.ratePerSecond,
                 burst: plan.burst,
             },
-        }
+        };
     });
 
     app.get('/account/keys', { onRequest: requireSession }, async (req) => {

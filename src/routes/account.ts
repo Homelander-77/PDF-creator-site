@@ -3,7 +3,7 @@ import { authenticate, requireSession } from '../auth.js';
 import { createKey, revokeKey } from '../key.js';
 import { query } from '../db.js';
 import { currentPeriod } from '../plans.js';
-import { getUsage } from '../quota.js';
+import { used } from '../quota.js';
 import { conf } from '../config.js';
 import { PLANS } from '../plans.js'
 
@@ -15,7 +15,7 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
     app.get('/v1/me', { onRequest: authenticate }, async (req) => {
         const auth = req.auth!;
         const plan = auth.planConfig;
-        const usage = await getUsage(auth.userId, plan);
+        const usage = await used(auth.userId, plan);
         return {
             user_id: auth.userId,
             plan: plan.id,

@@ -9,6 +9,7 @@ export interface Plan {
 export const PLANS: Record<string, Plan> = {
     free: { id: 'free', pagesPerMonth: 100, ratePerSecond: 1, burst: 3, price: 0 },
     premium: { id: 'premium', pagesPerMonth: 10_000, ratePerSecond: 10, burst: 30, price: 1990 },
+    business: { id: 'business', pagesPerMonth: 100_000, ratePerSecond: 50, burst: 150, price: 7990 },
 };
 
 export const getPlan = (id: string): Plan => PLANS[id] ?? PLANS.free;
