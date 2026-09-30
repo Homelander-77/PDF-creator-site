@@ -135,7 +135,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <span className="font-mono text-[13px] text-subtle">
-                период {me.period} · {me.limits.requests_per_second} req/s
+                {periodLabel(me.period)} · {me.limits.requests_per_second} req/s
               </span>
             </div>
 
@@ -295,4 +295,15 @@ function fmt(iso: string): string {
   if (days === 1) return 'вчера';
   if (days < 30) return `${days} дн. назад`;
   return d.toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/**
+ * Сервер отдаёт начало периода датой: «2026-09-11» — у платного тарифа это
+ * день оплаты, у бесплатного 1-е число. Сырая дата читается как отладка,
+ * поэтому пишем словами. Старый формат «2026-09» тоже разбирается.
+ */
+function periodLabel(period: string): string {
+  const d = new Date(period.length === 7 ? `${period}-01` : period);
+  if (Number.isNaN(d.getTime())) return `период ${period}`;
+  return `период с ${d.toLocaleDateString('ru', { day: 'numeric', month: 'long', timeZone: 'UTC' })}`;
 }

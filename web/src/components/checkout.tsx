@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Card, Skeleton } from '@/components/ui';
@@ -57,6 +57,23 @@ export function Checkout() {
     () => PLANS.find((p) => p.id === params.get('plan')) ?? null,
     [params],
   );
+
+  /**
+   * Действующий тариф берём из /account/me, а не из сессии.
+   *
+   * В сессии лежит users.plan как есть — там остаётся «premium» и после
+   * того, как оплаченный период кончился. /account/me отдаёт тариф с учётом
+   * срока: истёкшая подписка там уже «free». Иначе человеку, которому пора
+   * продлевать, мы бы писали «тариф уже подключён».
+   */
+  const [activePlan, setActivePlan] = useState<string | null>(null);
+  useEffect(() => {
+    if (session.status !== 'authenticated') return;
+    api
+      .me()
+      .then((m) => setActivePlan(m.plan))
+      .catch(() => setActivePlan(null));
+  }, [session.status]);
 
   /* ----------------------- Чего здесь быть не должно ------------------- */
 
@@ -143,8 +160,7 @@ export function Checkout() {
     }
   }
 
-  const current = session.session.plan;
-  const already = current === plan.id;
+  const already = activePlan === plan.id;
 
   return (
     <div className="space-y-6">

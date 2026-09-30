@@ -57,8 +57,16 @@ export default function LoginPage() {
   }
 
   async function resend() {
-    await api.resend(email).catch(() => {});
-    setError('Письмо отправлено повторно — проверьте почту.');
+    try {
+      await api.resend(email);
+      setError('Письмо отправлено повторно — проверьте почту.');
+    } catch (err) {
+      // Сервер ограничивает повторные письма: три в час на адрес. На отказ
+      // нельзя отвечать «отправлено» — человек будет ждать письма, которого нет.
+      setError(
+        err instanceof ApiError ? err.message : 'Не удалось отправить письмо.',
+      );
+    }
     setNeedsVerify(false);
   }
 

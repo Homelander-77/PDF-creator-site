@@ -97,7 +97,7 @@ export const DOC_ENTRIES: DocEntry[] = [
     href: '/docs#errors',
     title: 'quota_exceeded — 402',
     section: 'Ошибки',
-    keywords: '402 лимит исчерпан кончились страницы оплата',
+    keywords: '402 лимит исчерпан кончились страницы оплата остаток документ больше период',
   },
   {
     href: '/docs#errors',
