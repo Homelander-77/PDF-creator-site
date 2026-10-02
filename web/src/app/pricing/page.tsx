@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { PricingCalculator } from '@/components/pricing-calculator';
-import { Button, Reveal } from '@/components/ui';
+import { Reveal, ButtonLink } from '@/components/ui';
 
 export const metadata: Metadata = {
   title: 'Тарифы',
@@ -120,14 +119,8 @@ export default function PricingPage() {
                 не вернётесь.
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link href="/register">
-                  <Button size="lg">Создать аккаунт</Button>
-                </Link>
-                <Link href="/docs">
-                  <Button size="lg" variant="ghost">
-                    Сначала документация
-                  </Button>
-                </Link>
+                <ButtonLink href="/register" size="lg">Создать аккаунт</ButtonLink>
+                <ButtonLink href="/docs" size="lg" variant="ghost">Сначала документация</ButtonLink>
               </div>
             </Reveal>
           </div>

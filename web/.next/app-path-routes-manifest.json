@@ -4,13 +4,15 @@
   "/sitemap.xml/route": "/sitemap.xml",
   "/_not-found/page": "/_not-found",
   "/checkout/page": "/checkout",
+  "/checkout/mock/page": "/checkout/mock",
+  "/invoice/[id]/page": "/invoice/[id]",
   "/pricing/page": "/pricing",
-  "/page": "/",
   "/docs/page": "/docs",
+  "/page": "/",
   "/dashboard/page": "/dashboard",
   "/forgot/page": "/forgot",
   "/login/page": "/login",
-  "/register/page": "/register",
   "/reset/page": "/reset",
+  "/register/page": "/register",
   "/verify/page": "/verify"
 }

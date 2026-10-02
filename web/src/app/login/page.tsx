@@ -1,20 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState, type FormEvent } from 'react';
 import { AuthShell } from '@/components/auth-shell';
 import { Button, Input } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
 import { useCooldown } from '@/hooks/use-cooldown';
 import { formatWait } from '@/lib/time';
+import { safeNext } from '@/lib/next-url';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  // Откуда прислали на вход: со страницы оплаты, из кабинета по истёкшей
+  // сессии. Раньше параметр игнорировался, и после входа человек всегда
+  // оказывался в кабинете — например, вместо оплаты, которую начинал.
+  const next = safeNext(useSearchParams().get('next'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [needsVerify, setNeedsVerify] = useState(false);
+  const [resending, setResending] = useState(false);
   const [loading, setLoading] = useState(false);
 
   /**
@@ -30,12 +37,13 @@ export default function LoginPage() {
     if (cooldown.active) return;
 
     setError(null);
+    setNotice(null);
     setNeedsVerify(false);
     setLoading(true);
 
     try {
       await api.login(email, password);
-      router.push('/dashboard');
+      router.push(next);
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
@@ -57,17 +65,24 @@ export default function LoginPage() {
   }
 
   async function resend() {
+    setResending(true);
     try {
       await api.resend(email);
-      setError('Письмо отправлено повторно — проверьте почту.');
+      // Успех — зелёным и отдельно от ошибки. Раньше «письмо отправлено»
+      // показывалось в красной плашке, и читалось как очередной отказ.
+      setError(null);
+      setNotice(`Письмо отправлено на ${email} — проверьте почту и папку «Спам».`);
+      setNeedsVerify(false);
     } catch (err) {
-      // Сервер ограничивает повторные письма: три в час на адрес. На отказ
-      // нельзя отвечать «отправлено» — человек будет ждать письма, которого нет.
-      setError(
-        err instanceof ApiError ? err.message : 'Не удалось отправить письмо.',
-      );
+      // Сервер ограничивает повторные письма. На отказ нельзя отвечать
+      // «отправлено» — человек будет ждать письма, которого нет.
+      if (err instanceof ApiError && err.retryAfterSec) {
+        cooldown.start(err.retryAfterSec);
+      }
+      setError(err instanceof ApiError ? err.message : 'Не удалось отправить письмо.');
+    } finally {
+      setResending(false);
     }
-    setNeedsVerify(false);
   }
 
   return (
@@ -138,11 +153,21 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={resend}
-                className="mt-1 block underline underline-offset-2"
+                disabled={resending}
+                className="mt-1 block underline underline-offset-2 disabled:opacity-60"
               >
-                Выслать письмо ещё раз
+                {resending ? 'Отправляем…' : 'Выслать письмо ещё раз'}
               </button>
             )}
+          </div>
+        )}
+
+        {notice && !error && (
+          <div
+            role="status"
+            className="animate-fade-in rounded-[10px] border border-success/25 bg-success/8 px-3.5 py-2.5 text-[14px] text-success"
+          >
+            {notice}
           </div>
         )}
 
@@ -163,5 +188,15 @@ export default function LoginPage() {
         </Button>
       </form>
     </AuthShell>
+  );
+}
+
+export default function LoginPage() {
+  // useSearchParams требует границы Suspense — иначе Next не соберёт
+  // страницу статически.
+  return (
+    <Suspense fallback={<AuthShell title="С возвращением"><div /></AuthShell>}>
+      <LoginForm />
+    </Suspense>
   );
 }

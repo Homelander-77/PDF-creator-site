@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Button, Skeleton } from '@/components/ui';
+import { Button, Card, Skeleton } from '@/components/ui';
 import { useSession } from '@/hooks/use-session';
 import { Logo } from '@/components/logo';
+import { loginUrl } from '@/lib/next-url';
 
 /**
  * Шапка кабинета и охрана входа.
@@ -19,11 +20,33 @@ import { Logo } from '@/components/logo';
  */
 export function DashboardChrome({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const session = useSession();
 
+  // После входа — обратно сюда же, а не на общую страницу кабинета.
   useEffect(() => {
-    if (session.status === 'anonymous') router.replace('/login');
-  }, [session.status, router]);
+    if (session.status === 'anonymous') router.replace(loginUrl(pathname));
+  }, [session.status, router, pathname]);
+
+  // Сервер не ответил — это не повод выкидывать на вход: человек вошёл,
+  // просто API сейчас недоступен. Говорим как есть и даём повторить.
+  if (session.status === 'error') {
+    return (
+      <div className="mx-auto max-w-xl px-5 py-24">
+        <Card className="animate-fade-in p-8 text-center">
+          <h1 className="text-[20px] font-medium">Сервер не отвечает</h1>
+          <p className="mx-auto mt-2 max-w-[42ch] text-[15px] leading-relaxed text-muted">
+            Ваши ключи и данные на месте. Попробуйте ещё раз через минуту.
+          </p>
+          <div className="mt-6">
+            <Button variant="secondary" onClick={() => void session.refresh()}>
+              Повторить
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   // Пока сессия не подтверждена — скелет, а не содержимое кабинета.
   // Показывать данные до проверки нельзя: они мигнут у неавторизованного.

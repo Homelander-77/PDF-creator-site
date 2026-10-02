@@ -1,11 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Badge, Button, Card, Input, Skeleton, Toast, cn } from '@/components/ui';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Badge, Button, ButtonLink, Card, Input, Skeleton, Toast, cn } from '@/components/ui';
 import { CodeBlock } from '@/components/code-block';
 import { ApiError, api, type ApiKey, type Me, type NewApiKey } from '@/lib/api';
+import { PLANS, num } from '@/lib/plans';
+import { plural } from '@/lib/time';
+import { loginUrl } from '@/lib/next-url';
+
+/** Сессия истекла посреди работы — сервер ответил 401. */
+const isExpired = (err: unknown) => err instanceof ApiError && err.status === 401;
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [me, setMe] = useState<Me | null>(null);
   const [keys, setKeys] = useState<ApiKey[] | null>(null);
   const [fresh, setFresh] = useState<NewApiKey | null>(null);
@@ -31,22 +40,28 @@ export default function DashboardPage() {
     if (m.status === 'fulfilled') setMe(m.value);
     if (k.status === 'fulfilled') setKeys(k.value.keys);
 
-    if (m.status === 'rejected' && k.status === 'rejected') {
-      const e = m.reason;
-      setLoadError(
-        e instanceof ApiError ? e.message : 'Не удалось загрузить данные.',
-      );
-      setKeys([]);
-    } else if (k.status === 'rejected') {
-      setKeys([]);
+    const failed = [m, k].find((r) => r.status === 'rejected');
+    if (!failed) return;
+
+    const reason = (failed as PromiseRejectedResult).reason;
+    if (isExpired(reason)) {
+      router.replace(loginUrl(pathname));
+      return;
     }
-  }, []);
+    // Любая неудача — явная ошибка с кнопкой «Повторить». Раньше она
+    // показывалась, только если упали ОБА запроса: не загрузилась одна
+    // квота — и над ней вечно висел скелет без единого объяснения.
+    setLoadError(reason instanceof ApiError ? reason.message : 'Не удалось загрузить данные.');
+    if (k.status === 'rejected') setKeys((prev) => prev ?? []);
+  }, [router, pathname]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  async function create() {
+  async function create(e?: FormEvent) {
+    e?.preventDefault();
+    if (creating) return;
     setCreating(true);
     setBlocked(null);
     try {
@@ -55,7 +70,9 @@ export default function DashboardPage() {
       setName('');
       await load();
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'email_not_verified') {
+      if (isExpired(err)) {
+        router.replace(loginUrl(pathname));
+      } else if (err instanceof ApiError && err.code === 'email_not_verified') {
         setBlocked(err.message);
       } else {
         setToast({
@@ -80,6 +97,10 @@ export default function DashboardPage() {
       setKeys((k) => (k ?? []).filter((x) => x.id !== id));
       setToast({ msg: 'Ключ отозван — он перестал работать.', tone: 'success' });
     } catch (err) {
+      if (isExpired(err)) {
+        router.replace(loginUrl(pathname));
+        return;
+      }
       setToast({
         msg: err instanceof ApiError ? err.message : 'Не удалось отозвать ключ.',
         tone: 'error',
@@ -90,6 +111,7 @@ export default function DashboardPage() {
   const used = me?.usage.pages_used ?? 0;
   const limit = me?.usage.pages_limit ?? 100;
   const pct = Math.min(100, Math.round((used / limit) * 100));
+  const plan = PLANS.find((p) => p.id === me?.plan);
 
   return (
     <div className="page-enter mx-auto max-w-5xl px-5 py-10">
@@ -101,7 +123,18 @@ export default function DashboardPage() {
             остальные.
           </p>
         </div>
-        {me && <Badge tone={me.plan === 'free' ? 'neutral' : 'accent'}>{me.plan}</Badge>}
+        {me && (
+          <div className="flex items-center gap-3">
+            <Badge tone={me.plan === 'free' ? 'neutral' : 'accent'}>
+              {plan?.name ?? me.plan}
+            </Badge>
+            {me.plan !== 'business' && (
+              <ButtonLink href="/pricing" size="sm" variant="secondary">
+                Повысить тариф
+              </ButtonLink>
+            )}
+          </div>
+        )}
       </div>
 
       {loadError && (
@@ -109,9 +142,12 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="font-medium text-danger">{loadError}</div>
-              <p className="mt-1 text-[14px] text-muted">
-                Проверьте, запущен ли сервер API на 3001.
-              </p>
+              {/* Подсказка про порт нужна разработчику, а не клиенту. */}
+              {process.env.NODE_ENV === 'development' && (
+                <p className="mt-1 text-[14px] text-muted">
+                  Проверьте, запущен ли сервер API на 3001.
+                </p>
+              )}
             </div>
             <Button variant="secondary" size="sm" onClick={() => void load()}>
               Повторить
@@ -127,11 +163,11 @@ export default function DashboardPage() {
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
               <div>
                 <span className="text-[26px] font-semibold tracking-[-0.02em]">
-                  {used.toLocaleString('ru')}
+                  {num(used)}
                 </span>
                 <span className="text-[15px] text-muted">
                   {' / '}
-                  {limit.toLocaleString('ru')} страниц
+                  {num(limit)} {plural(limit, 'страница', 'страницы', 'страниц')}
                 </span>
               </div>
               <span className="font-mono text-[13px] text-subtle">
@@ -149,9 +185,19 @@ export default function DashboardPage() {
             </div>
 
             <p className="mt-2.5 text-[13.5px] text-muted">
-              Осталось {me.usage.pages_remaining.toLocaleString('ru')} страниц
-              {pct >= 80 && (
-                <span className="text-warning"> — квота почти исчерпана</span>
+              {me.usage.pages_remaining === 0 ? (
+                <span className="text-danger">
+                  Страницы на этот период закончились — запросы получают 402.
+                </span>
+              ) : (
+                <>
+                  {plural(me.usage.pages_remaining, 'Осталась', 'Осталось', 'Осталось')}{' '}
+                  {num(me.usage.pages_remaining)}{' '}
+                  {plural(me.usage.pages_remaining, 'страница', 'страницы', 'страниц')}
+                  {pct >= 80 && (
+                    <span className="text-warning"> — квота почти исчерпана</span>
+                  )}
+                </>
               )}
             </p>
           </>
@@ -177,7 +223,7 @@ export default function DashboardPage() {
           <CodeBlock code={fresh.api_key} filename="api key" />
           <div className="mt-4">
             <Button variant="secondary" size="sm" onClick={() => setFresh(null)}>
-              Я сохранил
+              Ключ сохранён
             </Button>
           </div>
         </Card>
@@ -186,7 +232,8 @@ export default function DashboardPage() {
       {/* --------------------------- Создание ---------------------------- */}
       <Card className="mb-6 p-6">
         <h2 className="mb-4 font-medium">Выпустить ключ</h2>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        {/* Форма, а не div: Enter в поле названия выпускает ключ. */}
+        <form onSubmit={create} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <Input
             label="Название"
             placeholder="production"
@@ -194,10 +241,10 @@ export default function DashboardPage() {
             onChange={(e) => setName(e.target.value)}
             hint="Понадобится, чтобы понимать, какой ключ где используется."
           />
-          <Button onClick={create} loading={creating} className="sm:mb-6">
+          <Button type="submit" loading={creating} className="sm:mb-6">
             Выпустить
           </Button>
-        </div>
+        </form>
 
         {blocked && (
           <div className="animate-fade-in mt-4 rounded-[10px] border border-warning/25 bg-warning/8 px-3.5 py-2.5 text-[14px] text-warning">
@@ -293,7 +340,7 @@ function fmt(iso: string): string {
   const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
   if (days === 0) return 'сегодня';
   if (days === 1) return 'вчера';
-  if (days < 30) return `${days} дн. назад`;
+  if (days < 30) return `${days} ${plural(days, 'день', 'дня', 'дней')} назад`;
   return d.toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 

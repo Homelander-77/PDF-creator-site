@@ -2,16 +2,37 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { AuthShell } from '@/components/auth-shell';
-import { Button } from '@/components/ui';
-import { api } from '@/lib/api';
+import { Button, ButtonLink, Input } from '@/components/ui';
+import { ApiError, api } from '@/lib/api';
+import { useCooldown } from '@/hooks/use-cooldown';
+import { formatWait } from '@/lib/time';
 
-type State = 'checking' | 'ok' | 'fail';
+type State = 'checking' | 'ok' | 'fail' | 'offline';
+
+/**
+ * Один запрос на токен, сколько бы раз ни запустился эффект.
+ *
+ * Токен одноразовый: первый запрос его тратит, второй получает «ссылка
+ * использована». А React в режиме разработки запускает эффекты дважды —
+ * и человек с только что подтверждённой почтой видел «ссылка не
+ * сработала». Кешируем сам промис: второй запуск ждёт тот же ответ.
+ */
+const inflight = new Map<string, Promise<unknown>>();
+function verifyOnce(token: string) {
+  let p = inflight.get(token);
+  if (!p) {
+    p = api.verify(token);
+    inflight.set(token, p);
+  }
+  return p;
+}
 
 function Verify() {
   const token = useSearchParams().get('token') ?? '';
   const [state, setState] = useState<State>('checking');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!token) {
@@ -19,14 +40,20 @@ function Verify() {
       return;
     }
     let alive = true;
-    api
-      .verify(token)
+    verifyOnce(token)
       .then(() => alive && setState('ok'))
-      .catch(() => alive && setState('fail'));
+      .catch((err) => {
+        if (!alive) return;
+        // Сеть или 5xx — ссылка, скорее всего, жива. Нельзя говорить
+        // «устарела»: человек пойдёт запрашивать новую без нужды.
+        const broken = err instanceof ApiError && err.status >= 400 && err.status < 500;
+        if (!broken) inflight.delete(token);
+        setState(broken ? 'fail' : 'offline');
+      });
     return () => {
       alive = false;
     };
-  }, [token]);
+  }, [token, attempt]);
 
   if (state === 'checking') {
     return (
@@ -52,12 +79,28 @@ function Verify() {
               </svg>
             </span>
           </div>
-          <Link href="/login" className="block">
-            <Button size="lg" className="w-full">
-              Войти
-            </Button>
-          </Link>
+          <ButtonLink href="/login" size="lg" className="block w-full">Войти</ButtonLink>
         </div>
+      </AuthShell>
+    );
+  }
+
+  if (state === 'offline') {
+    return (
+      <AuthShell
+        title="Не удалось проверить ссылку"
+        subtitle="Сервер не ответил. Ссылка, скорее всего, в порядке — попробуйте ещё раз."
+      >
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={() => {
+            setState('checking');
+            setAttempt((n) => n + 1);
+          }}
+        >
+          Повторить
+        </Button>
       </AuthShell>
     );
   }
@@ -72,11 +115,86 @@ function Verify() {
         </Link>
       }
     >
-      <div className="rounded-[14px] border border-border bg-elevated p-6 text-center text-[14.5px] leading-relaxed text-muted">
-        Запросить новую можно на странице входа — там есть кнопка отправить
-        письмо повторно.
-      </div>
+      <ResendForm />
     </AuthShell>
+  );
+}
+
+/**
+ * Новое письмо — прямо здесь.
+ *
+ * Раньше страница отправляла «запросить на странице входа», но там кнопка
+ * повторной отправки появляется только после попытки войти с верным
+ * паролем. Человек шёл туда и не находил её.
+ */
+function ResendForm() {
+  const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cooldown = useCooldown();
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (cooldown.active) return;
+    setSending(true);
+    setError(null);
+    try {
+      await api.resend(email);
+      setSent(true);
+    } catch (err) {
+      if (err instanceof ApiError && err.retryAfterSec) cooldown.start(err.retryAfterSec);
+      else setError(err instanceof ApiError ? err.message : 'Не удалось отправить письмо.');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (sent) {
+    return (
+      <div
+        role="status"
+        className="animate-fade-in rounded-[14px] border border-success/25 bg-success/8 p-6 text-center text-[14.5px] leading-relaxed text-success"
+      >
+        Если {email} зарегистрирован и ещё не подтверждён, новая ссылка уже
+        в почте. Загляните и в «Спам».
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <Input
+        label="Почта, на которую регистрировались"
+        type="email"
+        autoComplete="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="you@company.com"
+      />
+      {error && !cooldown.active && (
+        <div
+          role="alert"
+          className="animate-fade-in rounded-[10px] border border-danger/25 bg-danger/8 px-3.5 py-2.5 text-[14px] text-danger"
+        >
+          {error}
+        </div>
+      )}
+      <Button
+        type="submit"
+        size="lg"
+        loading={sending}
+        disabled={cooldown.active}
+        className="w-full"
+      >
+        {cooldown.active ? (
+          <span className="tabular-nums">Повтор через {formatWait(cooldown.left)}</span>
+        ) : (
+          'Прислать новую ссылку'
+        )}
+      </Button>
+    </form>
   );
 }
 

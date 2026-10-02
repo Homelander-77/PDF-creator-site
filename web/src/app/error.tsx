@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui';
+import { Button, ButtonLink } from '@/components/ui';
 
 /**
  * Страница неожиданной ошибки.
@@ -57,11 +56,7 @@ export default function GlobalError({
           <Button size="lg" onClick={reset}>
             Попробовать снова
           </Button>
-          <Link href="/">
-            <Button size="lg" variant="secondary">
-              На главную
-            </Button>
-          </Link>
+          <ButtonLink href="/" size="lg" variant="secondary">На главную</ButtonLink>
         </div>
       </div>
     </div>

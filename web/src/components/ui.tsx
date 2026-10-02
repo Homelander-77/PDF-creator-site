@@ -1,11 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import {
   useEffect,
   useId,
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type ComponentProps,
   type InputHTMLAttributes,
   type ReactNode,
 } from 'react';
@@ -98,11 +100,41 @@ export function Reveal({
 
 /* ------------------------------- Button -------------------------------- */
 
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
 };
+
+const BUTTON_BASE =
+  'relative inline-flex items-center justify-center gap-2 font-medium ' +
+  'rounded-[10px] whitespace-nowrap select-none ' +
+  'transition-[transform,background-color,border-color,color,box-shadow] duration-200 ' +
+  // Нажатие — только scale: трансформ, а не изменение размеров.
+  'active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none ' +
+  '[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]';
+
+const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
+  primary:
+    'bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_1px_2px_rgba(0,0,0,0.08)]',
+  secondary:
+    'bg-elevated text-fg border border-border hover:border-border-strong hover:bg-sunken',
+  ghost: 'text-muted hover:text-fg hover:bg-accent-soft',
+  danger:
+    'bg-transparent text-danger border border-transparent hover:border-danger/40 hover:bg-danger/10',
+};
+
+const BUTTON_SIZES: Record<ButtonSize, string> = {
+  sm: 'h-8 px-3 text-[13px]',
+  md: 'h-10 px-4 text-sm',
+  lg: 'h-12 px-6 text-[15px]',
+};
+
+const buttonClass = (variant: ButtonVariant, size: ButtonSize, className?: string) =>
+  cn(BUTTON_BASE, BUTTON_VARIANTS[variant], BUTTON_SIZES[size], className);
 
 export function Button({
   variant = 'primary',
@@ -113,33 +145,9 @@ export function Button({
   disabled,
   ...rest
 }: ButtonProps) {
-  const base =
-    'relative inline-flex items-center justify-center gap-2 font-medium ' +
-    'rounded-[10px] whitespace-nowrap select-none ' +
-    'transition-[transform,background-color,border-color,color,box-shadow] duration-200 ' +
-    // Нажатие — только scale: трансформ, а не изменение размеров.
-    'active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none ' +
-    '[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]';
-
-  const variants = {
-    primary:
-      'bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_1px_2px_rgba(0,0,0,0.08)]',
-    secondary:
-      'bg-elevated text-fg border border-border hover:border-border-strong hover:bg-sunken',
-    ghost: 'text-muted hover:text-fg hover:bg-accent-soft',
-    danger:
-      'bg-transparent text-danger border border-transparent hover:border-danger/40 hover:bg-danger/10',
-  };
-
-  const sizes = {
-    sm: 'h-8 px-3 text-[13px]',
-    md: 'h-10 px-4 text-sm',
-    lg: 'h-12 px-6 text-[15px]',
-  };
-
   return (
     <button
-      className={cn(base, variants[variant], sizes[size], className)}
+      className={buttonClass(variant, size, className)}
       disabled={disabled || loading}
       {...rest}
     >
@@ -148,6 +156,33 @@ export function Button({
       )}
       {children}
     </button>
+  );
+}
+
+/**
+ * Ссылка, которая выглядит как кнопка.
+ *
+ * Раньше писали <Link><Button/></Link> — это кнопка внутри ссылки,
+ * невалидный HTML: клавиатура останавливается на одном элементе дважды,
+ * а экранная читалка объявляет «ссылка, кнопка». Здесь один элемент —
+ * настоящая ссылка с внешностью кнопки.
+ */
+export function ButtonLink({
+  href,
+  variant = 'primary',
+  size = 'md',
+  className,
+  children,
+  ...rest
+}: Omit<ComponentProps<typeof Link>, 'className'> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+}) {
+  return (
+    <Link href={href} className={buttonClass(variant, size, className)} {...rest}>
+      {children}
+    </Link>
   );
 }
 

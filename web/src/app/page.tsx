@@ -8,7 +8,7 @@ import { CodeBlock } from '@/components/code-block';
 import { PlanCards } from '@/components/plan-cards';
 import { FlowDiagram } from '@/components/flow-diagram';
 import { API_BASE } from '@/lib/site';
-import { Badge, Button, Card, Reveal } from '@/components/ui';
+import { Badge, Card, Reveal, ButtonLink } from '@/components/ui';
 
 /**
  * Каждая индексируемая страница называет свой настоящий адрес сама.
@@ -116,16 +116,8 @@ export default function LandingPage() {
               </p>
 
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link href="/register">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    Начать бесплатно
-                  </Button>
-                </Link>
-                <Link href="/docs">
-                  <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                    Документация
-                  </Button>
-                </Link>
+                <ButtonLink href="/register" size="lg" className="w-full sm:w-auto">Начать бесплатно</ButtonLink>
+                <ButtonLink href="/docs" size="lg" variant="secondary" className="w-full sm:w-auto">Документация</ButtonLink>
               </div>
 
               <p className="mt-4 font-mono text-[12.5px] text-subtle">
@@ -274,14 +266,8 @@ export default function LandingPage() {
                   Хватит, чтобы проверить на своих документах.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Link href="/register">
-                    <Button size="lg">Создать аккаунт</Button>
-                  </Link>
-                  <Link href="/docs">
-                    <Button size="lg" variant="ghost">
-                      Сначала документация
-                    </Button>
-                  </Link>
+                  <ButtonLink href="/register" size="lg">Создать аккаунт</ButtonLink>
+                  <ButtonLink href="/docs" size="lg" variant="ghost">Сначала документация</ButtonLink>
                 </div>
               </div>
             </Reveal>

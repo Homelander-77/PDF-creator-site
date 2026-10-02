@@ -4,13 +4,15 @@
   "/sitemap.xml/route": "app/sitemap.xml/route.js",
   "/_not-found/page": "app/_not-found/page.js",
   "/checkout/page": "app/checkout/page.js",
+  "/checkout/mock/page": "app/checkout/mock/page.js",
+  "/invoice/[id]/page": "app/invoice/[id]/page.js",
   "/pricing/page": "app/pricing/page.js",
-  "/page": "app/page.js",
   "/docs/page": "app/docs/page.js",
+  "/page": "app/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/forgot/page": "app/forgot/page.js",
   "/login/page": "app/login/page.js",
-  "/register/page": "app/register/page.js",
   "/reset/page": "app/reset/page.js",
+  "/register/page": "app/register/page.js",
   "/verify/page": "app/verify/page.js"
 }

@@ -17,6 +17,7 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [sent, setSent] = useState(false);
     const [resent, setResent] = useState<'idle' | 'sending' | 'done'>('idle');
+    const [resendError, setResendError] = useState<string | null>(null);
 
     /**
      * Один счётчик на обе кнопки — и регистрацию, и повторную отправку.
@@ -70,6 +71,7 @@ export default function RegisterPage() {
                                         // Раньше здесь был вызов без всякой обратной связи:
                                         // человек жал кнопку, и ровно ничего не происходило.
                                         setResent('sending');
+                                        setResendError(null);
                                         try {
                                             await api.resend(email);
                                             setResent('done');
@@ -78,6 +80,10 @@ export default function RegisterPage() {
                                             // сервер просит подождать, покажем сколько.
                                             if (err instanceof ApiError && err.retryAfterSec) {
                                                 cooldown.start(err.retryAfterSec);
+                                            } else {
+                                                setResendError(
+                                                    err instanceof ApiError ? err.message : 'Не удалось отправить письмо.',
+                                                );
                                             }
                                             setResent('idle');
                                         }
@@ -86,6 +92,11 @@ export default function RegisterPage() {
                                 >
                                     {resent === 'sending' ? 'Отправляем…' : 'Отправить ещё раз'}
                                 </button>
+                                {resendError && (
+                                    <span role="alert" className="mt-1 block text-danger">
+                                        {resendError}
+                                    </span>
+                                )}
                             </>
                         )}
                     </>

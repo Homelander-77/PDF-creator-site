@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { Button, Card } from '@/components/ui';
+import { Card, ButtonLink } from '@/components/ui';
 
 /**
  * Куда сервер отправляет после «Оплатить», пока платёжный сервис не
@@ -37,12 +36,8 @@ export function OrderPlaceholder({
             {children}
           </div>
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/dashboard">
-              <Button>В кабинет</Button>
-            </Link>
-            <Link href="/pricing">
-              <Button variant="secondary">К тарифам</Button>
-            </Link>
+            <ButtonLink href="/dashboard">В кабинет</ButtonLink>
+            <ButtonLink href="/pricing" variant="secondary">К тарифам</ButtonLink>
           </div>
         </Card>
       </main>

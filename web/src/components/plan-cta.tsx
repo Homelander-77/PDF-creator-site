@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { Button } from '@/components/ui';
+import { ButtonLink } from '@/components/ui';
 import { useSession } from '@/hooks/use-session';
 import type { Plan } from '@/lib/plans';
 
@@ -31,11 +30,7 @@ export function PlanCta({ plan, accent }: { plan: Plan; accent: boolean }) {
   const { href, label } = target(plan, signedIn);
 
   return (
-    <Link href={href} className="block">
-      <Button variant={accent ? 'primary' : 'secondary'} className="w-full">
-        {label}
-      </Button>
-    </Link>
+    <ButtonLink href={href} variant={accent ? 'primary' : 'secondary'} className="block w-full">{label}</ButtonLink>
   );
 }
 

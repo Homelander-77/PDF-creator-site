@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button, Card, Skeleton } from '@/components/ui';
+import { Button, Card, Skeleton, ButtonLink } from '@/components/ui';
 import { useSession } from '@/hooks/use-session';
 import { ApiError, api, type PaymentMethod } from '@/lib/api';
 import { PLANS, kop, num, pricePerPage, rub } from '@/lib/plans';
+import { loginUrl } from '@/lib/next-url';
 
 /**
  * Выбор способа оплаты.
@@ -86,9 +86,7 @@ export function Checkout() {
           там же есть калькулятор объёма.
         </p>
         <div className="mt-6">
-          <Link href="/pricing">
-            <Button>К тарифам</Button>
-          </Link>
+          <ButtonLink href="/pricing">К тарифам</ButtonLink>
         </div>
       </Card>
     );
@@ -105,6 +103,22 @@ export function Checkout() {
     );
   }
 
+  if (session.status === 'error') {
+    return (
+      <Card className="p-8 text-center">
+        <h2 className="text-[20px] font-medium">Сервер не отвечает</h2>
+        <p className="mx-auto mt-2 max-w-[44ch] text-[15px] leading-relaxed text-muted">
+          Деньги не списаны. Попробуйте ещё раз через минуту.
+        </p>
+        <div className="mt-6">
+          <Button variant="secondary" onClick={() => void session.refresh()}>
+            Повторить
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
   if (session.status === 'anonymous') {
     return (
       <Card className="p-8 text-center">
@@ -114,12 +128,8 @@ export function Checkout() {
           после входа. Если аккаунта ещё нет — регистрация занимает минуту.
         </p>
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href={`/login?next=/checkout?plan=${plan.id}`}>
-            <Button>Войти</Button>
-          </Link>
-          <Link href="/register">
-            <Button variant="secondary">Создать аккаунт</Button>
-          </Link>
+          <ButtonLink href={loginUrl(`/checkout?plan=${plan.id}`)}>Войти</ButtonLink>
+          <ButtonLink href="/register" variant="secondary">Создать аккаунт</ButtonLink>
         </div>
       </Card>
     );

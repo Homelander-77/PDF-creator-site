@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ThemeToggle } from './theme-toggle';
-import { Button, cn } from './ui';
+import { ButtonLink, cn } from './ui';
 import { useSession } from '@/hooks/use-session';
 import { Logo } from '@/components/logo';
 
@@ -80,19 +80,11 @@ export function Header() {
 
           <div className="hidden items-center gap-2 sm:flex">
             {session.status === 'authenticated' ? (
-              <Link href="/dashboard">
-                <Button size="sm">Кабинет</Button>
-              </Link>
-            ) : session.status === 'anonymous' ? (
+              <ButtonLink href="/dashboard" size="sm">Кабинет</ButtonLink>
+            ) : session.status === 'anonymous' || session.status === 'error' ? (
               <>
-                <Link href="/login">
-                  <Button size="sm" variant="ghost">
-                    Войти
-                  </Button>
-                </Link>
-                <Link href="/register">
-                  <Button size="sm">Начать</Button>
-                </Link>
+                <ButtonLink href="/login" size="sm" variant="ghost">Войти</ButtonLink>
+                <ButtonLink href="/register" size="sm">Начать</ButtonLink>
               </>
             ) : (
               // Пока сессия неизвестна — держим место, чтобы шапка не прыгала.
@@ -132,19 +124,11 @@ export function Header() {
           ))}
           <div className="mt-2 flex gap-2 border-t border-border pt-3">
             {session.status === 'authenticated' ? (
-              <Link href="/dashboard" className="flex-1">
-                <Button className="w-full">Кабинет</Button>
-              </Link>
+              <ButtonLink href="/dashboard" className="flex-1">Кабинет</ButtonLink>
             ) : (
               <>
-                <Link href="/login" className="flex-1">
-                  <Button variant="secondary" className="w-full">
-                    Войти
-                  </Button>
-                </Link>
-                <Link href="/register" className="flex-1">
-                  <Button className="w-full">Начать</Button>
-                </Link>
+                <ButtonLink href="/login" variant="secondary" className="flex-1">Войти</ButtonLink>
+                <ButtonLink href="/register" className="flex-1">Начать</ButtonLink>
               </>
             )}
           </div>

@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui';
+import { ButtonLink } from '@/components/ui';
 
 /**
  * Страница 404.
@@ -26,14 +25,8 @@ export default function NotFound() {
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href="/">
-            <Button size="lg">На главную</Button>
-          </Link>
-          <Link href="/docs">
-            <Button size="lg" variant="secondary">
-              Документация
-            </Button>
-          </Link>
+          <ButtonLink href="/" size="lg">На главную</ButtonLink>
+          <ButtonLink href="/docs" size="lg" variant="secondary">Документация</ButtonLink>
         </div>
       </div>
     </div>

@@ -29,7 +29,22 @@ export class ApiError extends Error {
  * Ровно на этом сюда попадала «пароль слишком короткий» при нормальной
  * длине, но без спецсимвола.
  */
-const PREFER_SERVER_MESSAGE = new Set(['weak_password', 'invalid_request']);
+const PREFER_SERVER_MESSAGE = new Set([
+  'weak_password',
+  'invalid_request',
+  'already_on_plan',
+  'quota_exceeded',
+]);
+
+/**
+ * Серверный текст берём, только если он по-русски.
+ *
+ * Сейчас часть сообщений бэкенда английская («No such special symbols»).
+ * Показывать её посреди русского интерфейса хуже, чем нашу общую фразу.
+ * Когда бэкенд переведут, эта проверка просто перестанет срабатывать.
+ */
+const isRussian = (text: unknown): text is string =>
+  typeof text === 'string' && /[а-яё]/i.test(text);
 
 /**
  * Коды, при которых ожидание имеет смысл показывать числом.
@@ -57,7 +72,21 @@ const MESSAGES: Record<string, string> = {
   key_not_found: 'Ключ не найден.',
   quota_exceeded: 'Исчерпан месячный лимит страниц.',
   rate_limit_exceeded: 'Слишком часто. Сбавьте темп.',
+  key_limit_reached: 'На вашем тарифе больше ключей не выпустить. Отзовите ненужный.',
+  source_not_allowed: 'Этот формат недоступен на вашем тарифе.',
+  url_not_allowed: 'Эту ссылку открыть нельзя: она ведёт во внутреннюю сеть.',
+  render_failed: 'Не получилось собрать PDF — проверьте разметку.',
+  render_timeout: 'Документ не собрался за 30 секунд.',
+  unavailable: 'Сервис временно перегружен. Повторите через минуту.',
+  unknown_plan: 'Такого тарифа нет.',
+  unknown_method: 'Такой способ оплаты не поддерживается.',
+  already_on_plan: 'Этот тариф уже оплачен.',
+  payload_too_large: 'Запрос слишком большой.',
+  invalid_request: 'Некорректный запрос.',
 };
+
+/** Ответ без нашего кода ошибки, но со статусом 5xx — значит, API лежит или его не видно через прокси. */
+const SERVER_DOWN = 'Сервер не отвечает. Повторите через минуту.';
 
 /**
  * Сколько ещё ждать, по мнению сервера.
@@ -123,11 +152,15 @@ async function request<T>(
     const withWait =
       retry !== undefined ? RETRY_MESSAGES[code]?.(formatWait(retry)) : undefined;
 
+    const russian = isRussian(fromServer) ? fromServer : undefined;
+    // Прокси Next отдаёт 500 без JSON, когда бэкенд не запущен: кода нет.
+    const fallback = res.status >= 500 ? SERVER_DOWN : 'Что-то пошло не так.';
+
     const message =
       withWait ??
       (PREFER_SERVER_MESSAGE.has(code)
-        ? (fromServer ?? MESSAGES[code] ?? 'Что-то пошло не так.')
-        : (MESSAGES[code] ?? fromServer ?? 'Что-то пошло не так.'));
+        ? (russian ?? MESSAGES[code] ?? fallback)
+        : (MESSAGES[code] ?? russian ?? fallback));
 
     throw new ApiError(res.status, code, String(message), retry);
   }
