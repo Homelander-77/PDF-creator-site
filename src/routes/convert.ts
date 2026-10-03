@@ -3,9 +3,11 @@ import { authenticate } from '../auth.js';
 import { query } from '../db.js';
 import { PLANS } from '../plans.js';
 import { periodStart, reserve, commit, release, used } from '../quota.js';
-import { type RenderInput, render } from '../render/index.js';
+import { type RenderResult, type RenderInput, RenderError, render } from '../render/index.js';
+import { send } from 'process';
 
 const SOURCES = new Set(['html', 'url', 'markdown']);
+const HTTP_CODE = { url_not_allowed: 400, render_failed: 502, render_timeout: 504, unavailable: 503 };
 
 export async function convertRoutes(app: FastifyInstance) {
     app.post('/v1/convert', { onRequest: authenticate, bodyLimit: 5 * 1024 * 1024 },
@@ -45,10 +47,23 @@ from users where id = $1`,
             if (allowed === 0) {
                 return reply.code(402).send({ error: 'quota_exceeded', message: 'Pages have been spent' });
             }
+            let result: RenderResult;
+            try {
+                result = await render({
+                    maxPages: allowed + 1, options: body.options, [source]: content, html: content
+                } as RenderInput);
+            } catch (e) {
+                await release(userId, start);
+                if (e instanceof RenderError) {
+                    return reply.code(HTTP_CODE[e.code]).send({ error: e.code });
+                }
+                throw e;
+            }
+            const ok = await commit(userId, start, result.pages, limit);
+            if (!ok) {
+                return reply.code(402).send({ error: 'quota_exceeded' });
+            }
 
-            const ready = await render({
-                maxPages: allowed + 1, options: body.options, source: source, html: content
-            } as RenderInput);
 
         });
 }
