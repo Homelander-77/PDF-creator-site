@@ -11,7 +11,6 @@ declare module 'fastify' {
     interface FastifyRequest {
         auth?: Identity & { planConfig: Plan };
         session?: { userId: string };
-
     }
 }
 

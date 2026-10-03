@@ -5,12 +5,11 @@ import { PLANS } from '../plans.js';
 import { periodStart, reserve, commit, release, used } from '../quota.js';
 
 const SOURCES = new Set(['html', 'url', 'markdown']);
-const HTTP_CODE = { url_not_allowed: 400, render_failed: 502, render_timeout: 504, unavailable: 503 };
 
 export async function convertRoutes(app: FastifyInstance) {
     app.post('/v1/convert', { onRequest: authenticate, bodyLimit: 5 * 1024 * 1024 },
         async (req, reply) => {
-            const userId = req.auth?.userId;
+            const userId = req.auth!.userId;
             const { rows: [user] } = await query<{
                 plan: string;
                 email_verified_at: Date | null;
@@ -24,7 +23,28 @@ from users where id = $1`,
             if (!user) { reply.code(401).send({ error: 'invalid_api_key' }); return; }
             if (!user.email_verified_at) { reply.code(403).send({ error: 'email_not_verified' }); return; }
 
+            const body = (req.body ?? {}) as Record<string, unknown>;
+            const source = body.source;
+            if (typeof source !== 'string' || !SOURCES.has(source)) {
+                return reply.code(400).send({ error: 'invalid_request', message: 'source: html, url of markdown' });
+            }
+            const content = body[source];
+            if (typeof content !== 'string' || content.trim() === '') {
+                return reply.code(400).send({ error: 'invalid_request', message: 'Empty data' });
+            }
+
             const active = user.current_period_end !== null && user.current_period_end > new Date();
             const plan = (active ? user.plan : 'free') as keyof typeof PLANS;
+            const start = periodStart(user);
+            if (plan === 'free' && source !== 'html') {
+                return reply.code(401).send({ error: 'not_allowed' });
+            }
+            const limit = PLANS[plan].pagesPerMonth;
+            const allowed = await reserve(userId, start, limit);
+            if (allowed === 0) {
+                return reply.code(402).send({ error: 'quota_exceeded', message: 'Pages have been spent' });
+            }
+
+
         });
 }
