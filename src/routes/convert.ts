@@ -3,11 +3,21 @@ import { authenticate } from '../auth.js';
 import { query } from '../db.js';
 import { PLANS } from '../plans.js';
 import { periodStart, reserve, commit, release, used } from '../quota.js';
-import { type RenderResult, type RenderInput, RenderError, render } from '../render/index.js';
-import { send } from 'process';
+import { type PageOptions, type RenderResult, type RenderInput, RenderError, render, PageOption } from '../render/index.js';
 
 const SOURCES = new Set(['html', 'url', 'markdown']);
 const HTTP_CODE = { url_not_allowed: 400, render_failed: 502, render_timeout: 504, unavailable: 503 };
+const OPTION_KEYS = new Set([
+    'landscape',
+    'paperWidth',
+    'paperHeight',
+    'marginTop',
+    'marginBottom',
+    'marginLeft',
+    'marginRight',
+    'waitDelay',
+]);
+
 
 export async function convertRoutes(app: FastifyInstance) {
     app.post('/v1/convert', { onRequest: authenticate, bodyLimit: 5 * 1024 * 1024 },
@@ -31,6 +41,17 @@ from users where id = $1`,
             if (typeof source !== 'string' || !SOURCES.has(source)) {
                 return reply.code(400).send({ error: 'invalid_request', message: 'source: html, url of markdown' });
             }
+            let options = body.options;
+            if (typeof options === 'object' && options !== null && !Array.isArray(options)) {
+                const unk = Object.keys(options).find((k) => !OPTION_KEYS.has(k as keyof PageOptions));
+                if (unk) return reply.code(400).send({ error: "unknown_option" });
+                for (const [k, v] of Object.entries(options)) {
+                    if (!OPTION_KEYS.has(k)) return reply.code(400).send({ message: 'incorrect option' });
+                    const okType = k === 'landscape' ? typeof v === 'boolean' : typeof v === 'string';
+                    if (!okType) return reply.code(400).send({ message: 'incorrect option' });
+                }
+            }
+
             const content = body[source];
             if (typeof content !== 'string' || content.trim() === '') {
                 return reply.code(400).send({ error: 'invalid_request', message: 'Empty data' });
@@ -63,6 +84,8 @@ from users where id = $1`,
             if (!ok) {
                 return reply.code(402).send({ error: 'quota_exceeded' });
             }
+            const spent = await used(userId, start);
+
 
 
         });

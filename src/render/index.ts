@@ -1,7 +1,7 @@
 import { PDFDocument } from 'pdf-lib';
 import { marked } from 'marked';
 
-export type PageOption = {
+export type PageOptions = {
     landscape?: boolean;
     paperWidth?: string; paperHeight?: string;
     marginTop?: string; marginBottom?: string;
@@ -9,7 +9,7 @@ export type PageOption = {
     waitDelay?: string;
 };
 
-export type RenderInput = { maxPages: number; option?: PageOption } & (
+export type RenderInput = { maxPages: number; option?: PageOptions } & (
     | { source: 'html', html: string }
     | { source: 'url', url: string }
     | { source: 'markdown', markdown: string }
