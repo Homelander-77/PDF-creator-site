@@ -3,6 +3,7 @@ import { authenticate } from '../auth.js';
 import { query } from '../db.js';
 import { PLANS } from '../plans.js';
 import { periodStart, reserve, commit, release, used } from '../quota.js';
+import { type RenderInput, render } from '../render/index.js';
 
 const SOURCES = new Set(['html', 'url', 'markdown']);
 
@@ -45,6 +46,9 @@ from users where id = $1`,
                 return reply.code(402).send({ error: 'quota_exceeded', message: 'Pages have been spent' });
             }
 
+            const ready = await render({
+                maxPages: allowed + 1, options: body.options, source: source, html: content
+            } as RenderInput);
 
         });
 }
