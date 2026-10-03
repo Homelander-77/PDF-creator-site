@@ -3,7 +3,7 @@ import { authenticate } from '../auth.js';
 import { query } from '../db.js';
 import { PLANS } from '../plans.js';
 import { periodStart, reserve, commit, release, used } from '../quota.js';
-import { type PageOptions, type RenderResult, type RenderInput, RenderError, render, PageOption } from '../render/index.js';
+import { type PageOptions, type RenderResult, type RenderInput, RenderError, render } from '../render/index.js';
 
 const SOURCES = new Set(['html', 'url', 'markdown']);
 const HTTP_CODE = { url_not_allowed: 400, render_failed: 502, render_timeout: 504, unavailable: 503 };
@@ -41,15 +41,15 @@ from users where id = $1`,
             if (typeof source !== 'string' || !SOURCES.has(source)) {
                 return reply.code(400).send({ error: 'invalid_request', message: 'source: html, url of markdown' });
             }
-            let options = body.options;
+            const options = body.options;
             if (typeof options === 'object' && options !== null && !Array.isArray(options)) {
-                const unk = Object.keys(options).find((k) => !OPTION_KEYS.has(k as keyof PageOptions));
-                if (unk) return reply.code(400).send({ error: "unknown_option" });
                 for (const [k, v] of Object.entries(options)) {
-                    if (!OPTION_KEYS.has(k)) return reply.code(400).send({ message: 'incorrect option' });
+                    if (!OPTION_KEYS.has(k as keyof PageOptions)) return reply.code(400).send({ error: 'invalid_option' });
                     const okType = k === 'landscape' ? typeof v === 'boolean' : typeof v === 'string';
-                    if (!okType) return reply.code(400).send({ message: 'incorrect option' });
+                    if (!okType) return reply.code(400).send({ error: 'invalid_option' });
                 }
+            } else if (options !== undefined) {
+                return reply.code(400).send({ error: 'invalid_request' });
             }
 
             const content = body[source];
@@ -85,7 +85,13 @@ from users where id = $1`,
                 return reply.code(402).send({ error: 'quota_exceeded' });
             }
             const spent = await used(userId, start);
-
+            return reply.code(200).headers({
+                'Content-Type': 'application/pdf',
+                'X-Pages-Rendered': result.pages,
+                'X-Quota-Limit': limit,
+                'X-Quota-Used': spent,
+                'X-Quota-Remaining': Math.max(0, limit - spent)
+            }).send(result.pdf)
 
 
         });
