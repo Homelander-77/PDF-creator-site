@@ -10,6 +10,7 @@ import { accountRoutes } from '../src/routes/account.js';
 import { authRoutes } from '../src/routes/auth.js';
 import { sessionRoutes } from '../src/routes/session.js';
 import { accountSessionRoutes } from '../src/routes/account-session.js';
+import { convertRoutes } from '../src/routes/convert.js';
 
 const app = Fastify({
     logger: {
@@ -36,7 +37,8 @@ app.get('/health', async () => {
 await app.register(accountRoutes);   // /v1/*      — по API-ключу
 await app.register(authRoutes);      // /auth/register, /auth/verify, /auth/resend
 await app.register(sessionRoutes);   // /auth/login, /auth/logout, /auth/session
-await app.register(accountSessionRoutes)
+await app.register(accountSessionRoutes);
+await app.register(convertRoutes);
 
 await app.listen({ port: conf.port, host: '0.0.0.0' });
 

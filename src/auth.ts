@@ -5,7 +5,7 @@ import { getPlan, type Plan } from './plans.js';
 import { hit } from './ratelimits.js'
 import { conf } from './config.js';
 import { getSession } from './session.js';
-
+import { query } from './db.js';
 
 declare module 'fastify' {
     interface FastifyRequest {
@@ -41,6 +41,11 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
         reply.code(429).send({ error: 'rate_limit_exceeded', retry_after_sec: rate.retryAfterSec });
         return;
     }
+    void query(
+        `update api_keys set last_used_at = now()
+         where id = $1 and (last_used_at is null or last_used_at < now())`,
+        [identity.keyId],
+    ).catch(() => { });
     req.auth = {
         ...identity, planConfig: plan
     };
