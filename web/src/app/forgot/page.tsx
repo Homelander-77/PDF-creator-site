@@ -6,9 +6,11 @@ import { AuthShell } from '@/components/auth-shell';
 import { Button, Input } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
 import { useCooldown } from '@/hooks/use-cooldown';
+import { useGuestOnly } from '@/hooks/use-guest-only';
 import { formatWait } from '@/lib/time';
 
 export default function ForgotPage() {
+  useGuestOnly();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);

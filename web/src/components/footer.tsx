@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
+import { FooterAccount } from '@/components/footer-account';
 
 const GROUPS = [
   {
@@ -16,14 +17,6 @@ const GROUPS = [
       { href: '/docs#quickstart', label: 'Быстрый старт' },
       { href: '/docs#convert', label: 'Справочник API' },
       { href: '/docs#errors', label: 'Коды ошибок' },
-    ],
-  },
-  {
-    title: 'Аккаунт',
-    links: [
-      { href: '/login', label: 'Вход' },
-      { href: '/register', label: 'Регистрация' },
-      { href: '/dashboard', label: 'Кабинет' },
     ],
   },
 ];
@@ -60,6 +53,12 @@ export function Footer() {
             </ul>
           </div>
         ))}
+
+        {/* Колонка зависит от того, вошёл ли человек, — поэтому отдельный клиентский кусок. */}
+        <div>
+          <div className="mb-3 text-[13px] font-medium text-subtle">Аккаунт</div>
+          <FooterAccount />
+        </div>
       </div>
 
       <div className="border-t border-border">

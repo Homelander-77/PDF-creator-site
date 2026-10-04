@@ -69,7 +69,7 @@ export function PlanCards({ highlight }: { highlight?: PlanId | null }) {
               <ul className="mt-6 space-y-2.5">
                 <li className="flex items-start gap-2.5 text-[14px] text-muted">
                   <Tick />
-                  {p.rps} запрос{plural(p.rps)} в секунду, всплеск до {p.burst}
+                  {p.rps} запрос{plural(p.rps)} в секунду, до {p.burst} подряд
                 </li>
                 {p.features.map((f) => (
                   <li

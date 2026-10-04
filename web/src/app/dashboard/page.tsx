@@ -290,14 +290,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="text-right text-[13px] text-muted">
-                  <div>
-                    {k.last_used_at
-                      ? `использован ${fmt(k.last_used_at)}`
-                      : 'ещё не использовался'}
-                  </div>
-                  <div className="text-subtle">создан {fmt(k.created_at)}</div>
-                </div>
+                <KeyMeta lastUsed={k.last_used_at} created={k.created_at} />
 
                 {confirming === k.id ? (
                   <div className="animate-fade-in flex items-center gap-2">
@@ -335,13 +328,80 @@ export default function DashboardPage() {
   );
 }
 
-function fmt(iso: string): string {
+/**
+ * Когда ключ работал и когда появился — двумя подписанными блоками.
+ *
+ * Раньше это были две серые строки подряд, «использован …» и «создан …»,
+ * и глаз не отличал одну от другой. Теперь у каждой своя подпись, а
+ * активность видна по точке, ещё до чтения текста:
+ *
+ *   зелёная — запросы шли за последние сутки, ключ живой;
+ *   серая   — использовался, но давно;
+ *   пустая  — запросов не было ни разу.
+ */
+function KeyMeta({ lastUsed, created }: { lastUsed: string | null; created: string }) {
+  const recent =
+    lastUsed !== null && Date.now() - new Date(lastUsed).getTime() < 86_400_000;
+
+  return (
+    <dl className="flex gap-6 text-[13px] sm:text-right">
+      <div>
+        <dt className="text-[11.5px] text-subtle">Последний запрос</dt>
+        <dd
+          className="mt-0.5 flex items-center gap-1.5 sm:justify-end"
+          title={lastUsed ? full(lastUsed) : undefined}
+        >
+          <span
+            aria-hidden
+            className={cn(
+              'h-1.5 w-1.5 shrink-0 rounded-full',
+              lastUsed === null
+                ? 'border border-border-strong'
+                : recent
+                  ? 'bg-success ring-[3px] ring-success/15'
+                  : 'bg-border-strong',
+            )}
+          />
+          {lastUsed === null ? (
+            <span className="text-subtle">ещё не было</span>
+          ) : (
+            <span className={recent ? 'text-fg' : 'text-muted'}>{fmt(lastUsed)}</span>
+          )}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-[11.5px] text-subtle">Создан</dt>
+        <dd className="mt-0.5 text-muted" title={full(created)}>
+          {fmt(created, false)}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+/**
+ * «Сегодня, 14:32», «вчера, 09:05», «3 дня назад», «12 сент. 2026».
+ *
+ * Сегодня и вчера — по календарю, а не «меньше суток назад»: иначе
+ * запрос в 23:50 вчерашнего дня в 00:10 назывался бы «сегодня».
+ */
+function fmt(iso: string, withTime = true): string {
   const d = new Date(iso);
-  const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
-  if (days === 0) return 'сегодня';
-  if (days === 1) return 'вчера';
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86_400_000);
+  const time = d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+
+  if (days <= 0) return withTime ? `сегодня, ${time}` : 'сегодня';
+  if (days === 1) return withTime ? `вчера, ${time}` : 'вчера';
   if (days < 30) return `${days} ${plural(days, 'день', 'дня', 'дней')} назад`;
   return d.toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** Полная дата для подсказки при наведении. */
+function full(iso: string): string {
+  return new Date(iso).toLocaleString('ru', {
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
 }
 
 /**

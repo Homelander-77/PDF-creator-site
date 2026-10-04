@@ -8,9 +8,11 @@ import { Button, Input } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
 import { isValidPassword } from '@/lib/password';
 import { useCooldown } from '@/hooks/use-cooldown';
+import { useGuestOnly } from '@/hooks/use-guest-only';
 import { formatWait } from '@/lib/time';
 
 export default function RegisterPage() {
+    useGuestOnly();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);

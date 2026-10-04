@@ -7,6 +7,7 @@ import { AuthShell } from '@/components/auth-shell';
 import { Button, Input } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
 import { useCooldown } from '@/hooks/use-cooldown';
+import { useGuestOnly } from '@/hooks/use-guest-only';
 import { formatWait } from '@/lib/time';
 import { safeNext } from '@/lib/next-url';
 
@@ -16,6 +17,7 @@ function LoginForm() {
   // сессии. Раньше параметр игнорировался, и после входа человек всегда
   // оказывался в кабинете — например, вместо оплаты, которую начинал.
   const next = safeNext(useSearchParams().get('next'));
+  useGuestOnly(next);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
