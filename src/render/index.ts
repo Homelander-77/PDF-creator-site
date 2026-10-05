@@ -36,7 +36,6 @@ export async function render(input: RenderInput): Promise<RenderResult> {
     } else {
         const html = input.source === 'markdown' ? await marked.parse(input.markdown) : input.html;
         path = '/forms/chromium/convert/html';
-        // Gotenberg требует файл с именем именно index.html
         form.append('files', new Blob([html], { type: 'text/html' }), 'index.html');
     }
 
