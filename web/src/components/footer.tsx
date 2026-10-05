@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
 import { FooterAccount } from '@/components/footer-account';
+import { FooterStatus } from '@/components/footer-status';
 
 const GROUPS = [
   {
@@ -64,7 +65,7 @@ export function Footer() {
       <div className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-5 text-[13px] text-subtle sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} pdfapi</span>
-          <span className="font-mono">status: все системы в норме</span>
+          <FooterStatus />
         </div>
       </div>
     </footer>
