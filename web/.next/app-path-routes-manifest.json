@@ -3,16 +3,16 @@
   "/robots.txt/route": "/robots.txt",
   "/sitemap.xml/route": "/sitemap.xml",
   "/_not-found/page": "/_not-found",
-  "/invoice/[id]/page": "/invoice/[id]",
   "/checkout/page": "/checkout",
+  "/invoice/[id]/page": "/invoice/[id]",
   "/checkout/mock/page": "/checkout/mock",
   "/pricing/page": "/pricing",
   "/docs/page": "/docs",
   "/page": "/",
+  "/dashboard/page": "/dashboard",
   "/forgot/page": "/forgot",
-  "/register/page": "/register",
   "/login/page": "/login",
-  "/verify/page": "/verify",
+  "/register/page": "/register",
   "/reset/page": "/reset",
-  "/dashboard/page": "/dashboard"
+  "/verify/page": "/verify"
 }

@@ -90,6 +90,7 @@
     "compiler": {},
     "expireTime": 31536000,
     "staticPageGenerationTimeout": 60,
+    "output": "standalone",
     "modularizeImports": {
       "@mui/icons-material": {
         "transform": "@mui/icons-material/{{member}}"
@@ -294,19 +295,19 @@
       "afterFiles": [
         {
           "source": "/api/auth/:path*",
-          "destination": "http://localhost:3001/auth/:path*"
+          "destination": "http://api:3001/auth/:path*"
         },
         {
           "source": "/api/account/:path*",
-          "destination": "http://localhost:3001/account/:path*"
+          "destination": "http://api:3001/account/:path*"
         },
         {
           "source": "/api/v1/:path*",
-          "destination": "http://localhost:3001/v1/:path*"
+          "destination": "http://api:3001/v1/:path*"
         },
         {
           "source": "/api/health",
-          "destination": "http://localhost:3001/health"
+          "destination": "http://api:3001/health"
         }
       ],
       "fallback": []

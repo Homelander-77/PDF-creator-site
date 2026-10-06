@@ -1,10 +1,24 @@
 import path from 'node:path';
 import type { NextConfig } from 'next';
 
+/**
+ * Адрес шлюза. ВАЖНО: rewrites вычисляются при СБОРКЕ и вшиваются в неё,
+ * поэтому в Docker адрес передаётся аргументом сборки (API_ORIGIN), а не
+ * переменной окружения при запуске.
+ */
 const API = process.env.API_ORIGIN ?? 'http://localhost:3001';
 
 const config: NextConfig = {
   reactStrictMode: true,
+
+  /**
+   * Самодостаточная сборка для Docker.
+   *
+   * Next складывает в .next/standalone сервер и ровно те зависимости, что
+   * нужны в работе, — без dev-пакетов и без всего node_modules. Образ
+   * получается в разы меньше, а запускается одной командой: node server.js.
+   */
+  output: 'standalone',
 
   /**
    * Корень проекта — эта папка, и только она.

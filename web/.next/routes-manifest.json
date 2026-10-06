@@ -37,22 +37,22 @@
     "afterFiles": [
       {
         "source": "/api/auth/:path*",
-        "destination": "http://localhost:3001/auth/:path*",
+        "destination": "http://api:3001/auth/:path*",
         "regex": "^/api/auth(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
       },
       {
         "source": "/api/account/:path*",
-        "destination": "http://localhost:3001/account/:path*",
+        "destination": "http://api:3001/account/:path*",
         "regex": "^/api/account(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
       },
       {
         "source": "/api/v1/:path*",
-        "destination": "http://localhost:3001/v1/:path*",
+        "destination": "http://api:3001/v1/:path*",
         "regex": "^/api/v1(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
       },
       {
         "source": "/api/health",
-        "destination": "http://localhost:3001/health",
+        "destination": "http://api:3001/health",
         "regex": "^/api/health(?:/)?$"
       }
     ],

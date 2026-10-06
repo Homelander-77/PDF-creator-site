@@ -3,16 +3,16 @@
   "/robots.txt/route": "app/robots.txt/route.js",
   "/sitemap.xml/route": "app/sitemap.xml/route.js",
   "/_not-found/page": "app/_not-found/page.js",
-  "/invoice/[id]/page": "app/invoice/[id]/page.js",
   "/checkout/page": "app/checkout/page.js",
+  "/invoice/[id]/page": "app/invoice/[id]/page.js",
   "/checkout/mock/page": "app/checkout/mock/page.js",
   "/pricing/page": "app/pricing/page.js",
   "/docs/page": "app/docs/page.js",
   "/page": "app/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
   "/forgot/page": "app/forgot/page.js",
-  "/register/page": "app/register/page.js",
   "/login/page": "app/login/page.js",
-  "/verify/page": "app/verify/page.js",
+  "/register/page": "app/register/page.js",
   "/reset/page": "app/reset/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/verify/page": "app/verify/page.js"
 }

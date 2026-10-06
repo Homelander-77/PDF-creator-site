@@ -1,0 +1,41 @@
+services:
+  web:
+    build:
+      context: ./web
+      args:
+        API_ORIGIN: http://api:3001
+        NEXT_PUBLIC_SITE_URL: https://pdfapi.ru
+    ports:
+      - "3000:3000"
+    depends_on:
+      - "api"
+    networks: [front]
+    restart: unless-stopped
+    
+  api:
+    build:
+      context: ./backend
+      args:
+        API_RENDER: http://render:3100
+    ports:
+      - "3001:3001"
+    depends_on:
+      - "render"
+    restart: unless-stopped
+
+  render:
+    build:
+      context: ./render
+      args:
+        BLABLA: blabla
+    ports:
+      - "3100:3100"
+    restart: unless_stopped
+
+networks:
+  front: {}
+  api:
+    internal: true
+  render: {}
+
+volumes:
