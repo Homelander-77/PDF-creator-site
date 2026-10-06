@@ -13,14 +13,21 @@ services:
     restart: unless-stopped
     
   api:
-    build:
-      context: ./backend
-      args:
-        API_RENDER: http://render:3100
-    ports:
-      - "3001:3001"
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://pdfapi:${POSTGRES_PASSWORD}@postgres:5432/pdfapi
+      REDIS_URL: redis://redis:6379
+      GOTENBERG_URL: http://render:3000
+      APP_URL: https://$(DOMAIN)
+      TRUST_PROXY: "true"
     depends_on:
-      - "render"
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      render:
+        condition: service_healthy
     networks: [front, back, render]
     restart: unless-stopped
 
@@ -39,7 +46,7 @@ services:
       - pgdata:/var/lib/postgresql
       - ./migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD_SHELL", "pg_isready -U pdfapi -d pdfapi"]
+      test: ["CMD-SHELL", "pg_isready -U pdfapi -d pdfapi"]
       interval: 5s
       retries: 10  
     networks: [back]
@@ -47,7 +54,7 @@ services:
     
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--apendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redisdata:/data
     healthcheck:
@@ -55,7 +62,7 @@ services:
       interval: 5s
       retries: 10
     networks: [back]
-    restart: unless_stopped
+    restart: unless-stopped
 
 networks:
   front: {}
