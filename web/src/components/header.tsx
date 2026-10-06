@@ -105,7 +105,9 @@ export function Header() {
 
       {/* Мобильное меню: сдвигается трансформом, а не меняет height —
           анимация height дёргает раскладку на каждом кадре. */}
+      {/* inert — пока меню закрыто, Tab не уходит в невидимые ссылки. */}
       <div
+        inert={!open}
         className={cn(
           'overflow-hidden border-t border-border bg-bg md:hidden',
           'transition-[max-height,opacity] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]',

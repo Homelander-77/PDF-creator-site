@@ -2,9 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { cn } from './ui';
+import { API_BASE } from '@/lib/site';
 
-const SNIPPET = `curl -X POST https://api.pdfapi.dev/v1/convert \\
+// Без Content-Type curl отправляет тело как форму, и сервер отвечает 415 —
+// пример с главной не работал при копировании.
+const SNIPPET = `curl -X POST ${API_BASE}/v1/convert \\
   -H "Authorization: Bearer pdf_live_..." \\
+  -H "Content-Type: application/json" \\
   -d '{"source":"html","html":"<h1>Счёт №42</h1>"}' \\
   -o invoice.pdf`;
 

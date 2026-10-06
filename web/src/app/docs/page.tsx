@@ -126,7 +126,7 @@ X-API-Key: pdf_live_xK9pQ2mRt7vN...`}
                 ['html', 'html — строка с разметкой', 'все'],
                 ['url', 'url — публичный адрес страницы', 'premium и выше'],
                 ['markdown', 'markdown — текст', 'premium и выше'],
-                ['office', 'file — docx, xlsx, pptx', 'premium и выше'],
+                ['office', 'file — docx, xlsx, pptx', 'скоро'],
               ]}
             />
 
@@ -186,6 +186,12 @@ const pdf = Buffer.from(await res.arrayBuffer());`}
                 ['waitDelay', 'string', '0s'],
               ]}
             />
+            <P>
+              Других ключей в <Code>options</Code> быть не должно: неизвестный
+              параметр или значение не того типа — ответ <Code>400</Code>{' '}
+              <Code>invalid_request</Code> с именем поля в{' '}
+              <Code>message</Code>. Опечатка не потеряется молча.
+            </P>
             <P>
               <Code>waitDelay</Code> нужен, если страница дорисовывается
               скриптом: график, шрифт с CDN, данные по fetch. Без задержки
@@ -251,7 +257,7 @@ const pdf = Buffer.from(await res.arrayBuffer());`}
                 ['invalid_api_key', '401', 'Ключ неизвестен или отозван'],
                 ['email_not_verified', '403', 'Подтвердите почту в кабинете'],
                 ['source_not_allowed', '403', 'Формат недоступен на вашем тарифе'],
-                ['invalid_request', '400', 'Нет поля source или содержимого'],
+                ['invalid_request', '400', 'Нет source или содержимого, лишний или неверный параметр в options'],
                 ['quota_exceeded', '402', 'Лимит периода исчерпан или документ больше остатка'],
                 ['rate_limit_exceeded', '429', 'Повторите через Retry-After секунд'],
                 ['url_not_allowed', '400', 'Адрес ведёт во внутреннюю сеть'],
@@ -359,7 +365,7 @@ req['Authorization'] = "Bearer #{ENV.fetch('PDF_KEY')}"
 req['Content-Type']  = 'application/json'
 req.body = JSON.dump(source: 'html', html: '<h1>Договор</h1>')
 
-res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
+res = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') { |http| http.request(req) }
 raise res.body unless res.is_a?(Net::HTTPSuccess)
 
 File.binwrite('contract.pdf', res.body)`}

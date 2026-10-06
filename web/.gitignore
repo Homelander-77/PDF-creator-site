@@ -12,6 +12,7 @@ out/
 .DS_Store
 *.log
 Claude outputs/
+.claude/
 _to_delete/
 
 # мои локальные скрипты замеров, не часть сайта

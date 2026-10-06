@@ -92,7 +92,5 @@ from users where id = $1`,
                 'X-Quota-Used': spent,
                 'X-Quota-Remaining': Math.max(0, limit - spent)
             }).send(result.pdf)
-
-
         });
 }

@@ -22,23 +22,40 @@ type State =
  * на форму входа, где он вводил пароль, получал ту же ошибку и не понимал,
  * что происходит. Анонимом считаем только по 401.
  */
+/**
+ * Один запрос на всех, кто спросил одновременно.
+ *
+ * На главной сессию спрашивают шапка, подвал и три карточки тарифов —
+ * и раньше уходило пять одинаковых запросов /auth/session. Теперь, пока
+ * запрос в пути, все ждут его же. Кешем это не является: как только ответ
+ * пришёл, следующий вызов спросит сервер заново — иначе после входа или
+ * выхода страница видела бы устаревшее состояние.
+ */
+let inflight: Promise<State> | null = null;
+
+function fetchSession(): Promise<State> {
+  inflight ??= api
+    .session()
+    .then((session): State => ({ status: 'authenticated', session }))
+    .catch((err): State =>
+      err instanceof ApiError && err.status === 401
+        ? { status: 'anonymous' }
+        : {
+            status: 'error',
+            message: err instanceof ApiError ? err.message : 'Не удалось связаться с сервером.',
+          },
+    )
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
+}
+
 export function useSession() {
   const [state, setState] = useState<State>({ status: 'loading' });
 
   const refresh = useCallback(async () => {
-    try {
-      const session = await api.session();
-      setState({ status: 'authenticated', session });
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        setState({ status: 'anonymous' });
-      } else {
-        setState({
-          status: 'error',
-          message: err instanceof ApiError ? err.message : 'Не удалось связаться с сервером.',
-        });
-      }
-    }
+    setState(await fetchSession());
   }, []);
 
   useEffect(() => {
