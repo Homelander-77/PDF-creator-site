@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { authenticate } from '../auth.js';
 import { query } from '../db.js';
-import { PLANS } from '../plans.js';
+import { getPlan } from '../plans.js';
 import { periodStart, reserve, commit, release, used } from '../quota.js';
 import { type PageOptions, type RenderResult, type RenderInput, RenderError, render } from '../render/index.js';
 
@@ -58,21 +58,44 @@ from users where id = $1`,
             }
 
             const active = user.current_period_end !== null && user.current_period_end > new Date();
-            const plan = (active ? user.plan : 'free') as keyof typeof PLANS;
+            const plan = getPlan(active ? user.plan : 'free');
             const start = periodStart(user);
-            if (plan === 'free' && source !== 'html') {
-                return reply.code(401).send({ error: 'not_allowed' });
+            if (plan.id === 'free' && source !== 'html') {
+                return reply.code(403).send({error: 'source_not_allowed'});
             }
-            const limit = PLANS[plan].pagesPerMonth;
+            const limit = plan.pagesPerMonth;
             const allowed = await reserve(userId, start, limit);
             if (allowed === 0) {
                 return reply.code(402).send({ error: 'quota_exceeded', message: 'Pages have been spent' });
             }
             let result: RenderResult;
             try {
-                result = await render({
-                    maxPages: allowed + 1, options: body.options, [source]: content, html: content
-                } as RenderInput);
+                let renderInput: RenderInput;
+
+                if (source === 'html') {
+                    renderInput = {
+                        source: 'html',
+                        html: content,
+                        maxPages: allowed + 1,
+                        options: body.options as PageOptions | undefined,
+                    };
+                } else if (source === 'url') {
+                    renderInput = {
+                        source: 'url',
+                        url: content,
+                        maxPages: allowed + 1,
+                        options: body.options as PageOptions | undefined,
+                    };
+                } else {
+                    renderInput = {
+                        source: 'markdown',
+                        markdown: content,
+                        maxPages: allowed + 1,
+                        options: body.options as PageOptions | undefined,
+                    };
+                }
+
+                result = await render(renderInput);
             } catch (e) {
                 await release(userId, start);
                 if (e instanceof RenderError) {
