@@ -21,21 +21,48 @@ services:
       - "3001:3001"
     depends_on:
       - "render"
+    networks: [front, back, render]
     restart: unless-stopped
 
   render:
-    build:
-      context: ./render
-      args:
-        BLABLA: blabla
-    ports:
-      - "3100:3100"
+    build: ./render
+    networks: [render]
+    restart: unless-stopped
+    
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: pdfapi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: pdfapi
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD_SHELL", "pg_isready -U pdfapi -d pdfapi"]
+      interval: 5s
+      retries: 10  
+    networks: [back]
+    restart: unless-stopped
+    
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--apendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+    networks: [back]
     restart: unless_stopped
 
 networks:
   front: {}
-  api:
+  back:
     internal: true
   render: {}
+    
+
 
 volumes:
