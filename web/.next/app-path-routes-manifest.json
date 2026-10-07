@@ -1,18 +1,18 @@
 {
-  "/_not-found/page": "/_not-found",
+  "/manifest.webmanifest/route": "/manifest.webmanifest",
   "/robots.txt/route": "/robots.txt",
   "/sitemap.xml/route": "/sitemap.xml",
-  "/manifest.webmanifest/route": "/manifest.webmanifest",
+  "/_not-found/page": "/_not-found",
   "/checkout/page": "/checkout",
   "/invoice/[id]/page": "/invoice/[id]",
   "/checkout/mock/page": "/checkout/mock",
   "/pricing/page": "/pricing",
-  "/page": "/",
   "/docs/page": "/docs",
-  "/register/page": "/register",
-  "/login/page": "/login",
-  "/verify/page": "/verify",
-  "/reset/page": "/reset",
+  "/page": "/",
+  "/dashboard/page": "/dashboard",
   "/forgot/page": "/forgot",
-  "/dashboard/page": "/dashboard"
+  "/login/page": "/login",
+  "/register/page": "/register",
+  "/reset/page": "/reset",
+  "/verify/page": "/verify"
 }

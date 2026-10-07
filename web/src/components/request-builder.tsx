@@ -284,7 +284,9 @@ function snippet(lang: Lang, body: Record<string, Json>): string {
   }
 
   if (lang === 'javascript') {
-    return `const res = await fetch('${url}', {
+    return `import { writeFile } from 'node:fs/promises';
+
+const res = await fetch('${url}', {
   method: 'POST',
   headers: {
     Authorization: \`Bearer \${process.env.PDF_KEY}\`,

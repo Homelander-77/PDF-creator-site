@@ -1,0 +1,21 @@
+# В образ уходит только то, что нужно для сборки.
+node_modules
+.next
+out
+*.tsbuildinfo
+
+# локальные настройки и секреты — в образе им не место
+.env
+.env*.local
+
+# служебное и локальное
+.git
+.claude
+Claude outputs
+_to_delete
+.DS_Store
+*.log
+audit.mjs
+perf.mjs
+Dockerfile
+.dockerignore

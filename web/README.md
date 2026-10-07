@@ -31,14 +31,21 @@ Next переписывает на `http://localhost:3001/auth/login` (см. `ne
 браузер ──► Next :3000 ──► /api/* переписывается ──► Fastify :3001
 ```
 
-## Что нужно на стороне бэкенда
+## Что фронт ждёт от бэкенда
 
-1. `conf.isProd` — исправьте опечатку `producrion` → `production`, иначе
-   в проде кука уедет без флага `Secure`.
-2. `resetTokenTtl` и `appUrl` должны быть в конфиге.
-3. Ссылка в письме сброса должна вести на `${appUrl}/reset?token=...`
-   (страница фронта), а не на `/auth/reset` (эндпоинт API).
-4. Ссылка подтверждения — на `${appUrl}/verify?token=...`.
+Формат ошибок — `{ error, message }`. Код `error` фронт переводит на
+русский сам (`src/lib/api.ts`), `message` показывает, если он по-русски.
+
+| Адрес | Зачем |
+|---|---|
+| `/auth/*` | регистрация, вход, письма, сброс пароля |
+| `/account/me`, `/account/keys` | кабинет: квота и ключи, по куке |
+| `/account/checkout` | создание заказа, возвращает `payment_url` или `invoice_url` |
+| `/account/subscription` | состояние подписки (пока не используется) |
+| `/health` | статус в подвале: `{ status: 'ok' \| 'degraded', postgres, redis, renderer }` |
+
+Ссылки в письмах ведут на страницы сайта: `${APP_URL}/verify?token=…` и
+`${APP_URL}/reset?token=…`.
 
 ## Производительность анимаций
 

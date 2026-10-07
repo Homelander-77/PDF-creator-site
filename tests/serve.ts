@@ -22,19 +22,6 @@ const app = Fastify({
 });
 
 await app.register(cookie);
-
-app.get('/health', async () => {
-    const [db, cache] = await Promise.allSettled([
-        pool.query('SELECT 1'),
-        redis.ping(),
-    ]);
-    return {
-        status: db.status === 'fulfilled' && cache.status === 'fulfilled' ? 'ok' : 'degraded',
-        postgres: db.status === 'fulfilled',
-        redis: cache.status === 'fulfilled',
-    };
-});
-
 await app.register(accountRoutes);
 await app.register(authRoutes);
 await app.register(sessionRoutes);

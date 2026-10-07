@@ -1,0 +1,75 @@
+services:
+  web:
+    build:
+      context: ./web
+      args:
+        API_ORIGIN: http://api:3001
+        NEXT_PUBLIC_SITE_URL: https://pdfapi.ru
+    ports:
+      - "3000:3000"
+    depends_on:
+      - "api"
+    networks: [front]
+    restart: unless-stopped
+    
+  api:
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://pdfapi:${POSTGRES_PASSWORD}@postgres:5432/pdfapi
+      REDIS_URL: redis://redis:6379
+      GOTENBERG_URL: http://render:3000
+      APP_URL: https://$(DOMAIN)
+      TRUST_PROXY: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      render:
+        condition: service_healthy
+    networks: [front, back, render]
+    restart: unless-stopped
+
+  render:
+    build: ./render
+    networks: [render]
+    restart: unless-stopped
+    
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: pdfapi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: pdfapi
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pdfapi -d pdfapi"]
+      interval: 5s
+      retries: 10  
+    networks: [back]
+    restart: unless-stopped
+    
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+    networks: [back]
+    restart: unless-stopped
+
+networks:
+  front: {}
+  back:
+    internal: true
+  render: {}
+    
+volumes:
+  pgdata: {}
+  redisdata: {}
