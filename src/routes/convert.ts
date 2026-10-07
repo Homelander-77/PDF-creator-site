@@ -7,6 +7,18 @@ import { type PageOptions, type RenderResult, type RenderInput, RenderError, ren
 
 const SOURCES = new Set(['html', 'url', 'markdown']);
 const HTTP_CODE = { url_not_allowed: 400, render_failed: 502, render_timeout: 504, unavailable: 503 };
+const ERROR_MESSAGE: Record<string, string> = {
+    invalid_request: 'Некорректный запрос',
+    invalid_option: 'Некорректная опция',
+    source_not_allowed: 'Этот источник недоступен на текущем тарифе',
+    email_not_verified: 'Email не подтверждён',
+    quota_exceeded: 'Лимит страниц исчерпан',
+    url_not_allowed: 'URL запрещён',
+    render_failed: 'Не удалось создать PDF',
+    render_timeout: 'Превышено время рендеринга',
+    unavailable: 'Сервис рендеринга временно недоступен',
+    invalid_api_key: 'Неверный API-ключ',
+};
 const OPTION_KEYS = new Set([
     'landscape',
     'paperWidth',
@@ -34,39 +46,39 @@ from users where id = $1`,
                 [userId],
             );
             if (!user) { reply.code(401).send({ error: 'invalid_api_key' }); return; }
-            if (!user.email_verified_at) { reply.code(403).send({ error: 'email_not_verified' }); return; }
+            if (!user.email_verified_at) { reply.code(403).send({ error: 'email_not_verified', message: ERROR_MESSAGE.email_not_verified }); return; }
 
             const body = (req.body ?? {}) as Record<string, unknown>;
             const source = body.source;
             if (typeof source !== 'string' || !SOURCES.has(source)) {
-                return reply.code(400).send({ error: 'invalid_request', message: 'source: html, url of markdown' });
+                return reply.code(400).send({ error: 'invalid_request', message: ERROR_MESSAGE.invalid_request });
             }
             const options = body.options;
             if (typeof options === 'object' && options !== null && !Array.isArray(options)) {
                 for (const [k, v] of Object.entries(options)) {
-                    if (!OPTION_KEYS.has(k as keyof PageOptions)) return reply.code(400).send({ error: 'invalid_option' });
+                    if (!OPTION_KEYS.has(k as keyof PageOptions)) return reply.code(400).send({ error: 'invalid_option', message: ERROR_MESSAGE.invalid_option });
                     const okType = k === 'landscape' ? typeof v === 'boolean' : typeof v === 'string';
-                    if (!okType) return reply.code(400).send({ error: 'invalid_option' });
+                    if (!okType) return reply.code(400).send({ error: 'invalid_option', message: ERROR_MESSAGE.invalid_option });
                 }
             } else if (options !== undefined) {
-                return reply.code(400).send({ error: 'invalid_request' });
+                return reply.code(400).send({ error: 'invalid_request', message: ERROR_MESSAGE.invalid_request });
             }
 
             const content = body[source];
             if (typeof content !== 'string' || content.trim() === '') {
-                return reply.code(400).send({ error: 'invalid_request', message: 'Empty data' });
+                return reply.code(400).send({ error: 'invalid_request', message: ERROR_MESSAGE.invalid_request });
             }
 
             const active = user.current_period_end !== null && user.current_period_end > new Date();
             const plan = getPlan(active ? user.plan : 'free');
             const start = periodStart(user);
             if (plan.id === 'free' && source !== 'html') {
-                return reply.code(403).send({error: 'source_not_allowed'});
+                return reply.code(403).send({ error: 'source_not_allowed', message: ERROR_MESSAGE.source_not_allowed });
             }
             const limit = plan.pagesPerMonth;
             const allowed = await reserve(userId, start, limit);
             if (allowed === 0) {
-                return reply.code(402).send({ error: 'quota_exceeded', message: 'Pages have been spent' });
+                return reply.code(402).send({ error: 'quota_exceeded', message: ERROR_MESSAGE.quota_exceeded });
             }
             let result: RenderResult;
             try {
@@ -99,13 +111,13 @@ from users where id = $1`,
             } catch (e) {
                 await release(userId, start);
                 if (e instanceof RenderError) {
-                    return reply.code(HTTP_CODE[e.code]).send({ error: e.code });
+                    return reply.code(HTTP_CODE[e.code]).send({error: e.code, message: ERROR_MESSAGE[e.code] ?? 'Ошибка рендеринга',});
                 }
                 throw e;
             }
             const ok = await commit(userId, start, result.pages, limit);
             if (!ok) {
-                return reply.code(402).send({ error: 'quota_exceeded' });
+                return reply.code(402).send({ error: 'quota_exceeded', message: ERROR_MESSAGE.quota_exceeded });
             }
             const spent = await used(userId, start);
             return reply.code(200).headers({
