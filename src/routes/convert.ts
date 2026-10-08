@@ -5,6 +5,8 @@ import { getPlan } from '../plans.js';
 import { periodStart, reserve, commit, release, used } from '../quota.js';
 import { type PageOptions, type RenderResult, type RenderInput, RenderError } from '../render/index.js';
 import { renderThroughQueue } from '../queue/renderQueue.js';
+import { addFreeWatermark } from '../render/watermark.js';
+
 const SOURCES = new Set(['html', 'url', 'markdown']);
 const HTTP_CODE = { url_not_allowed: 400, render_failed: 502, render_timeout: 504, unavailable: 503 };
 const ERROR_MESSAGE: Record<string, string> = {
@@ -107,6 +109,9 @@ from users where id = $1`,
                     };
                 }
                 result = await renderThroughQueue(renderInput, plan.id);
+                if (plan.id === 'free') {
+                  result = {...result, pdf: await addFreeWatermark(result.pdf),};
+}
             } catch (e) {
                 await release(userId, start);
                 if (e instanceof RenderError) {
