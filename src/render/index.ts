@@ -19,6 +19,7 @@ export type RenderInput = { maxPages: number; options?: PageOptions } & (
     | { source: 'html'; html: string }
     | { source: 'url'; url: string }
     | { source: 'markdown'; markdown: string }
+    | { source: 'office'; filename: string; fileBase64: string }
 );
 
 export type RenderResult = { pdf: Buffer; pages: number; ms: number };
@@ -34,6 +35,10 @@ export async function render(input: RenderInput): Promise<RenderResult> {
         await assertHttpUrlAllowed(input.url);
         path = '/forms/chromium/convert/url';
         form.append('url', input.url);
+    } else if (input.source === 'office') {
+        path = '/forms/libreoffice/convert';
+        const file = Buffer.from(input.fileBase64, 'base64');
+        form.append('files', new Blob([file]), input.filename);
     } else {
         const html = input.source === 'markdown' ? await marked.parse(input.markdown) : input.html;
         path = '/forms/chromium/convert/html';
@@ -42,7 +47,19 @@ export async function render(input: RenderInput): Promise<RenderResult> {
 
     form.append('nativePageRanges', `1-${input.maxPages}`);
 
-    validateWaitDelay(input.options?.waitDelay);
+    if (input.source === 'office') {
+        if (input.options?.landscape !== undefined) {
+            form.append('landscape', String(input.options.landscape));
+        }
+    } else {
+        validateWaitDelay(input.options?.waitDelay);
+        for (const [k, v] of Object.entries(input.options ?? {})) {
+            if (v !== undefined) {
+                form.append(k, String(v));
+            }
+        }
+    }
+
     for (const [k, v] of Object.entries(input.options ?? {})) {
         if (v !== undefined) {
           form.append(k, String(v));

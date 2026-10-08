@@ -7,7 +7,7 @@ import { type PageOptions, type RenderResult, type RenderInput, RenderError } fr
 import { renderThroughQueue } from '../queue/renderQueue.js';
 import { addFreeWatermark } from '../render/watermark.js';
 
-const SOURCES = new Set(['html', 'url', 'markdown']);
+const SOURCES = new Set(['html', 'url', 'markdown', 'office']);
 const HTTP_CODE = { url_not_allowed: 400, render_failed: 502, render_timeout: 504, unavailable: 503 };
 const ERROR_MESSAGE: Record<string, string> = {
     invalid_request: 'Некорректный запрос',
@@ -65,10 +65,31 @@ from users where id = $1`,
             } else if (options !== undefined) {
                 return reply.code(400).send({ error: 'invalid_request', message: ERROR_MESSAGE.invalid_request });
             }
+            let content: string | undefined;
+            let officeFilename: string | undefined;
+            let officeBase64: string | undefined;
 
-            const content = body[source];
-            if (typeof content !== 'string' || content.trim() === '') {
-                return reply.code(400).send({ error: 'invalid_request', message: ERROR_MESSAGE.invalid_request });
+            if (source === 'office') {
+                officeFilename = body.filename as string | undefined;
+                officeBase64 = body.fileBase64 as string | undefined;
+
+                if (typeof officeFilename !== 'string' || !officeFilename.toLowerCase().endsWith('.docx') || typeof officeBase64 !== 'string' || officeBase64.trim() === '') {
+                      return reply.code(400).send({error: 'invalid_request', message: ERROR_MESSAGE.invalid_request,});
+                }
+
+                if (typeof options === 'object' && options !== null && !Array.isArray(options)) {
+                    for (const key of Object.keys(options)) {
+                        if (key !== 'landscape') {
+                            return reply.code(400).send({error: 'invalid_option',message: ERROR_MESSAGE.invalid_option,});
+                        }
+                    }
+                }
+            } else {
+                content = body[source] as string | undefined;
+
+                if (typeof content !== 'string' || content.trim() === '') {
+                    return reply.code(400).send({error: 'invalid_request', message: ERROR_MESSAGE.invalid_request,});
+                }
             }
 
             const active = user.current_period_end !== null && user.current_period_end > new Date();
@@ -89,21 +110,29 @@ from users where id = $1`,
                 if (source === 'html') {
                     renderInput = {
                         source: 'html',
-                        html: content,
+                        html: content!,
                         maxPages: allowed + 1,
                         options: body.options as PageOptions | undefined,
                     };
                 } else if (source === 'url') {
                     renderInput = {
                         source: 'url',
-                        url: content,
+                        url: content!,
+                        maxPages: allowed + 1,
+                        options: body.options as PageOptions | undefined,
+                    };
+                } else if (source === 'markdown') {
+                    renderInput = {
+                        source: 'markdown',
+                        markdown: content!,
                         maxPages: allowed + 1,
                         options: body.options as PageOptions | undefined,
                     };
                 } else {
                     renderInput = {
-                        source: 'markdown',
-                        markdown: content,
+                        source: 'office',
+                        filename: officeFilename!,
+                        fileBase64: officeBase64!,
                         maxPages: allowed + 1,
                         options: body.options as PageOptions | undefined,
                     };
