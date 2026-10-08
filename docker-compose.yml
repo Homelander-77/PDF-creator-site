@@ -8,15 +8,16 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - "api"
+      - api
     networks: [front]
     restart: unless-stopped
-    
+
   api:
     build:
       context: .
       dockerfile: src/Dockerfile
     environment:
+      RENDER_QUEUE_MAX: "2"
       NODE_ENV: production
       DATABASE_URL: postgres://pdfapi:${POSTGRES_PASSWORD}@postgres:5432/pdfapi
       REDIS_URL: redis://redis:6379
@@ -33,6 +34,23 @@ services:
     networks: [front, back, render]
     restart: unless-stopped
 
+  worker:
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    command: ["npx", "tsx", "src/worker.ts"]
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+      GOTENBERG_URL: http://render:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+      render:
+        condition: service_healthy
+    networks: [back, render]
+    restart: unless-stopped
+
   render:
     build: ./src/render
     environment:
@@ -47,7 +65,7 @@ services:
       retries: 10
     networks: [render]
     restart: unless-stopped
-    
+
   postgres:
     image: postgres:18-alpine
     environment:
@@ -60,10 +78,10 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pdfapi -d pdfapi"]
       interval: 5s
-      retries: 10  
+      retries: 10
     networks: [back]
     restart: unless-stopped
-    
+
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
@@ -81,7 +99,7 @@ networks:
   back:
     internal: true
   render: {}
-    
+
 volumes:
   pgdata: {}
   redisdata: {}

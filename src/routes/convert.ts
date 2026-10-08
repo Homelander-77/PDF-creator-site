@@ -3,8 +3,8 @@ import { authenticate } from '../auth.js';
 import { query } from '../db.js';
 import { getPlan } from '../plans.js';
 import { periodStart, reserve, commit, release, used } from '../quota.js';
-import { type PageOptions, type RenderResult, type RenderInput, RenderError, render } from '../render/index.js';
-
+import { type PageOptions, type RenderResult, type RenderInput, RenderError } from '../render/index.js';
+import { renderThroughQueue } from '../queue/renderQueue.js';
 const SOURCES = new Set(['html', 'url', 'markdown']);
 const HTTP_CODE = { url_not_allowed: 400, render_failed: 502, render_timeout: 504, unavailable: 503 };
 const ERROR_MESSAGE: Record<string, string> = {
@@ -106,8 +106,7 @@ from users where id = $1`,
                         options: body.options as PageOptions | undefined,
                     };
                 }
-
-                result = await render(renderInput);
+                result = await renderThroughQueue(renderInput, plan.id);
             } catch (e) {
                 await release(userId, start);
                 if (e instanceof RenderError) {
