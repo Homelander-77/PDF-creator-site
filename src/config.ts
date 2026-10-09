@@ -12,5 +12,6 @@ export const conf = {
     cookieName: process.env.COOKIE_NAME ?? 'sid',
     isProd: process.env.NODE_ENV === 'production',
     appUrl: process.env.APP_URL ?? 'http://localhost:3000',
-    resetTokenTtl: Number(process.env.RESETTOKENTTL ?? 3600)
+    resetTokenTtl: Number(process.env.RESETTOKENTTL ?? 3600),
+    renderQueueMax: Number(process.env.RENDER_QUEUE_MAX ?? 100),
 };

@@ -7,6 +7,7 @@
     "test": "tests"
   },
   "scripts": {
+    "dev": "tsx src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -23,9 +24,11 @@
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
     "@node-rs/argon2": "^2.1.0",
+    "bullmq": "^6.3.11",
     "fastify": "^5.12.1",
     "ioredis": "^6.0.0",
     "marked": "^18.0.14",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "pg": "^8.23.1"
   }
 }
